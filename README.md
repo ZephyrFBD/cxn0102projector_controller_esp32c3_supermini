@@ -2,7 +2,7 @@
 
 > **🚀 Important Notice:**  
 > The binary files provided in this project require a purchased license.  
-> If you have your own **ESP32-C3 SuperMini** development board, you can get a **50% discount**.  
+> If you have your own **ESP32-C3 SuperMini** development board, you can get a **50% discount**.(2.41$)  
 > The project **may be open-sourced soon**.
 
 ## 🛒 Purchase License
