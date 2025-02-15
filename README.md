@@ -1,0 +1,2 @@
+# cxn0102projector_controller_esp32c3_supermini
+This is Zephyr
