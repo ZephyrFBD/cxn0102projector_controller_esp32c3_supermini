@@ -1,74 +1,77 @@
 # cxn0102projector_controller_esp32c3_supermini
 
-> **Important Notice:**  
+> **🚀 Important Notice:**  
 > The binary files provided in this project require a purchased license.  
-> If you have your own ESP32-C3 SuperMini development board, you can get a 50% discount.  
-> The project source code will be open-sourced in the near future.
+> If you have your own **ESP32-C3 SuperMini** development board, you can get a **50% discount**.  
+> The project **may be open-sourced soon**.
 
-## Purchase License
+## 🛒 Purchase License
 
 - **Purchase Link:**  
-  [Click here to purchase the license](https://m.tb.cn/h.TJZHCVa?tk=7TBWeStUB3q)
+  👉 [Click here to purchase the license](https://m.tb.cn/h.TJZHCVa?tk=7TBWeStUB3q)
   
 - **Contact:**  
-  If you have any questions, please email: `Zephyr142024@gmail.com`
+  📩 If you have any questions, please email: **`Zephyr142024@gmail.com`**
 
 ---
 
-## How to Download and Flash the Binary Files
+## 🔥 How to Download and Flash the Binary Files
 
-Follow these detailed steps to flash the binary files to your ESP32-C3 development board using the ESP32 Flash Download Tool.
+Follow the detailed steps below to flash the binary files onto your ESP32-C3 development board using the **ESP32 Flash Download Tool**.
 
-### 1. Download the ESP32 Flash Download Tool
+### 1️⃣ Download the ESP32 Flash Download Tool
 
-- **Online Download:**  
-  Visit the [Espressif Documentation](https://docs.espressif.com/projects/esp-test-tools/en/latest/esp32/production_stage/tools/flash_download_tool.html) to download the tool.
+- **Official Download:**  
+  Visit the [Espressif Documentation](https://docs.espressif.com/projects/esp-test-tools/en/latest/esp32/production_stage/tools/flash_download_tool.html) to get the tool.
 
 - **Repository Download:**  
-  Alternatively, you can find the tool in this project's directory at:  
-  `cxn0102projector_controller_esp32c3_supermini/download_tool`
+  The tool is also available in this project's directory:  
+  📂 `cxn0102projector_controller_esp32c3_supermini/download_tool`
 
-### 2. Obtain the Appropriate Binary File
+### 2️⃣ Obtain the Correct Binary File
 
-- Download the binary file (.bin) that is suitable for your device from the provided resources.
+- Download the **.bin** file that matches your device from the available resources.
 
-### 3. Prepare the Flashing Tool
+### 3️⃣ Set Up the Flashing Tool
 
-- **Launch the Tool:**  
-  Open the ESP32 Flash Download Tool.
+- **Open the ESP32 Flash Download Tool.**
+- **Configure the following settings:**
+  - **Chip Type:** `ESP32-C3`
+  - **Firmware Mode:** `Development`
+  - **Interface:** `UART`
 
-- **Select Parameters:**  
-  In the tool, configure the following settings:
-  - **Chip Type:** ESP32-C3
-  - **Firmware:** development
-  - **Interface:** UART
+### 4️⃣ Configure and Flash the Firmware
 
-### 4. Configure and Flash the Firmware
-
-- **Default Settings:**  
-  Use the default settings in the tool, which typically do not require any changes.
+- **Use Default Settings:**  
+  No need to modify default configurations in most cases.
 
 - **Flash Address:**  
-  Flash the binary file to the chip starting at address `0x0`.
+  Burn the binary file to the chip at address **`0x0`**.
 
 - **Start Flashing:**  
-  Click the "Start Flash" or "Download" button and wait until the process completes.
+  Click **"Start Flash"** or **"Download"**, then wait for the process to complete.
 
-### 5. Complete the Flashing Process
+### 5️⃣ Verify and Restart
 
-- Once the flashing process is finished, the tool will display a "Flash Successful" message.
-- Restart your development board to ensure the new firmware is running correctly.
-
----
-
-If you have any questions or need further assistance, please feel free to contact me via email. Happy flashing!
+- After flashing is complete, you should see a **"Flash Successful"** message.
+- **Restart your ESP32-C3 SuperMini** to apply the new firmware.
 
 ---
 
-Feel free to update this document as the project evolves.
+## 🆕 Updates & Version History
 
-### 6. Updates
-- **V3.0**
-- adds Custom I2C Command, WiFi Transmit Power settings
+### **🔹 v3.0 (Latest Release)**
+- ✅ **Added:** Custom I2C Commands  
+- ✅ **Added:** WiFi Transmit Power Settings  
+
+📸 **Screenshot:**  
 ![ESP32 Flash Tool](v3.0/CXN0102%20Controller%20v3.0%20(Author%20vx_samzhangxian)%20-%20Google%20Chrome%202_15_2025%2012_36_12%20PM.png)
-v2.0,v2.2,v2.3 is not shown here,please contact me if needed
+
+### **Previous Versions**
+- **v2.0, v2.2, v2.3** are **not shown here**.  
+  📩 **Contact me if you need these versions!**
+
+---
+
+📌 If you have any issues or need assistance, feel free to reach out via email.  
+🎉 **Happy flashing!**
