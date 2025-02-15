@@ -40,7 +40,7 @@ Follow these detailed steps to flash the binary files to your ESP32-C3 developme
 - **Select Parameters:**  
   In the tool, configure the following settings:
   - **Chip Type:** ESP32-C3
-  - **Firmware Version:** develop (development version)
+  - **Firmware:** development
   - **Interface:** UART
 
 ### 4. Configure and Flash the Firmware
