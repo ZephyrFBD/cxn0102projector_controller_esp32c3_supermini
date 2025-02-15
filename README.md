@@ -70,5 +70,5 @@ Feel free to update this document as the project evolves.
 ### 6. Updates
 - **V3.0**
 - adds Custom I2C Command, WiFi Transmit Power settings
-![Image Description](cxn0102projector_controller_esp32c3_supermini\v3.0\CXN0102 Controller v3.0 (Author vx_samzhangxian) - Google Chrome 2_15_2025 12_36_12 PM.png)
+![ESP32 Flash Tool](v3.0/CXN0102%20Controller%20v3.0%20(Author%20vx_samzhangxian)%20-%20Google%20Chrome%202_15_2025%2012_36_12%20PM.png)
 v2.0,v2.2,v2.3 is not shown here,please contact me if needed
