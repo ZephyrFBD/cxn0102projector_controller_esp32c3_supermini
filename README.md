@@ -1,5 +1,6 @@
 # cxn0102projector_controller_esp32c3_supermini
 中文：[Readme_chinese.md](Readme_chinese.md)
+connections（接线图和页面说明）：![click here](/3.2/Esp32c3supermini驱动小宝光机接线图.pdf)
 > **🚀 Important Notice:**  
 > The binary files provided in this project require a purchased license.  
 > If you have your own **ESP32-C3 SuperMini** development board, you can get a **50% discount**.(2.41$)  
@@ -57,8 +58,6 @@ Follow the detailed steps below to flash the binary files onto your ESP32-C3 dev
 - **Restart your ESP32-C3 SuperMini** to apply the new firmware.
 
 ---
-## 🔥 How to Connect
-![click here](Esp32c3supermini驱动小宝光机接线图.pdf)
 
 ## 🆕 Updates & Version History
 ### **🔹 v3.1 (Latest Release)**
