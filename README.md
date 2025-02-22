@@ -1,5 +1,5 @@
 # cxn0102projector_controller_esp32c3_supermini
-
+中文：[Readme_chinese.md](Readme_chinese.md)
 > **🚀 Important Notice:**  
 > The binary files provided in this project require a purchased license.  
 > If you have your own **ESP32-C3 SuperMini** development board, you can get a **50% discount**.(2.41$)  
