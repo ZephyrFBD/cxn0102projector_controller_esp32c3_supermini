@@ -1,7 +1,8 @@
 # cxn0102projector_controller_esp32c3_supermini
  - 中文：[Readme_chinese.md](Readme_chinese.md)
  - connections（接线图和页面说明）：![click here](/v3.2/Esp32c3supermini驱动小宝光机接线图.pdf)
-> **🚀 Important Notice:**  
+> **🚀 Important Notice:**
+> recommend version:v3.1
 > The binary files provided in this project require a purchased license.  
 > If you have your own **ESP32-C3 SuperMini** development board, you can get a **50% discount**.(2.41$)  
 > The project **may be open-sourced soon**.
