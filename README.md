@@ -57,6 +57,8 @@ Follow the detailed steps below to flash the binary files onto your ESP32-C3 dev
 - **Restart your ESP32-C3 SuperMini** to apply the new firmware.
 
 ---
+## 🔥 How to Connect
+![con](Esp32c3supermini驱动小宝光机接线图.pdf)
 
 ## 🆕 Updates & Version History
 ### **🔹 v3.1 (Latest Release)**
