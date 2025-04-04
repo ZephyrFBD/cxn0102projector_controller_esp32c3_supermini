@@ -10,7 +10,7 @@
 ## 🛒 Purchase License
 
 - **Purchase Link:**  
-  👉 [Click here to purchase the license](https://m.tb.cn/h.TJZHCVa?tk=7TBWeStUB3q)
+  👉 [Click here to purchase the license](https://m.tb.cn/h.6UebzQ8?tk=tanMeCCtX1U)
   
 - **Contact:**  
   📩 If you have any questions, please email: **`Zephyr142024@gmail.com`**
