@@ -10,7 +10,7 @@
 ## 🛒 购买许可证
 
 - **购买链接：**  
-  👉 [点击此处购买许可证](https://m.tb.cn/h.TJZHCVa?tk=7TBWeStUB3q)
+  👉 [点击此处购买许可证](https://m.tb.cn/h.6UebzQ8?tk=tanMeCCtX1U)
   
 - **联系方式：**  
   📩 如有任何疑问，请发送邮件至：**`Zephyr142024@gmail.com`**
