@@ -1,3 +1,4 @@
+//注意接线！！！
 #include <Wire.h>
 //#include <Arduino.h>
 #include <WiFi.h>
