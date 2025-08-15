@@ -1,0 +1,662 @@
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <Wire.h>
+#include "esp_system.h"
+#include "esp_log.h"
+#include <string.h>
+
+#define NUM_ALLOWED_MACS 7  // 合法 MAC 地址数量
+#define SDA_PIN 8
+#define SCL_PIN 7
+#define BUTTON_PIN 2
+#define I2C_ADDRESS 0x77
+#define COM_REQ_PIN 10  // GPIO10 用于 COM_REQ
+
+// 合法 MAC 地址列表（根据实际需要修改）
+const char* allowed_macs[NUM_ALLOWED_MACS] = {
+  "A0:85:E3:4A:54:78",
+  "A0:85:E3:49:FE:5C",
+  "A0:85:E3:49:8D:20",
+  "98:3D:AE:B4:67:18",
+  "D8:3B:DA:30:59:C4",
+  "A0:85:E3:49:93:04",
+  "A0:85:E3:49:00:94"
+};
+
+void start_illegal_wifi() {
+  Serial.println("Unauthorized device detected! Starting ILLEGAL COPYING WiFi...");
+  
+  // 设置 WiFi AP 模式
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP("ILLEGAL COPYING");  // SSID：ILLEGAL COPYING（无密码）
+  
+  Serial.println("Illegal Copying WiFi started!");
+}
+
+void check_mac() {
+  uint8_t mac[6];
+  WiFi.macAddress(mac);  // 读取 ESP32-C3 的 MAC 地址
+  
+  char mac_str[18];
+  sprintf(mac_str, "%02X:%02X:%02X:%02X:%02X:%02X",
+          mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  
+  bool authorized = false;
+  for (int i = 0; i < NUM_ALLOWED_MACS; i++) {
+    if (strcmp(mac_str, allowed_macs[i]) == 0) {
+      authorized = true;
+      break;
+    }
+  }
+  
+  if (!authorized) {
+      Serial.printf("Unauthorized MAC detected: %s\n", mac_str);
+      start_illegal_wifi();
+      
+      // 让设备卡死，不让它继续运行其他代码
+      while (1);
+  } else {
+      Serial.printf("Device authorized. MAC: %s\n", mac_str);
+  }
+}
+/***************************************************
+ * SoftAP 模式的 SSID 和密码
+ ***************************************************/
+const char* AP_SSID     = "CXN0102_Web_Controller";
+const char* AP_PASSWORD = ""; // 必须 ≥ 8 字符
+
+/***************************************************
+ * I2C 和 COM_REQ 定义
+ ***************************************************/
+
+
+/***************************************************
+ * 命令类型和范围
+ ***************************************************/
+static const char* commands[] = {
+  "0100",      // 1: Start Input
+  "0200",      // 2: Stop Input
+  "0b0101",    // 3: Reboot
+  "0b0100",    // 4: Shutdown
+  "3200",      // 5: Enter Optical Axis Adjustment
+  "3300",      // 6: Optical Axis +
+  "3400",      // 7: Optical Axis -
+  "350100",    // 8: Exit Optical Axis (No Save)
+  "350101",    // 9: Exit Optical Axis (Save)
+  "3600",      // 10: Enter Bi-Phase Adjustment
+  "3700",      // 11: Bi-Phase +
+  "3800",      // 12: Bi-Phase -
+  "390100",    // 13: Exit Bi-Phase (No Save)
+  "390101",    // 14: Exit Bi-Phase (Save)
+  "4A",        // 15: Flip Mode
+  "5001",      // 16: Test Image ON
+  "5000",      // 17: Test Image OFF
+  "6000",      // 18: Mute
+  "6001",      // 19: Unmute
+  "7000",      // 20: Keystone Vertical -
+  "7001",      // 21: Keystone Vertical +
+  "7002",      // 22: Keystone Horizontal -
+  "7003",      // 23: Keystone Horizontal +
+  "8000",      // 24: Color Temperature -
+  "8001",      // 25: Color Temperature +
+};
+
+/***************************************************
+ * 温度和状态
+ ***************************************************/
+float currentTemperature = 0.0;
+uint8_t currentState = 0;
+
+/***************************************************
+ * 异步 WebServer
+ ***************************************************/
+AsyncWebServer server(80);
+/***************************************************
+ * 函数：设置WiFi功率
+ ***************************************************/
+void setTxPower(int powerLevel) {
+  wifi_power_t txPower;
+
+  switch (powerLevel) {
+      case 78: txPower = WIFI_POWER_19_5dBm; break;
+      case 76: txPower = WIFI_POWER_19dBm; break;
+      case 74: txPower = WIFI_POWER_18_5dBm; break;
+      case 68: txPower = WIFI_POWER_17dBm; break;
+      case 60: txPower = WIFI_POWER_15dBm; break;
+      case 52: txPower = WIFI_POWER_13dBm; break;
+      case 44: txPower = WIFI_POWER_11dBm; break;
+      case 34: txPower = WIFI_POWER_8_5dBm; break;
+      case 28: txPower = WIFI_POWER_7dBm; break;
+      case 20: txPower = WIFI_POWER_5dBm; break;
+      case 8:  txPower = WIFI_POWER_2dBm; break;
+      case -4: txPower = WIFI_POWER_MINUS_1dBm; break;
+      default: txPower = WIFI_POWER_8_5dBm; break;
+  }
+
+  WiFi.setTxPower(txPower);
+}
+/***************************************************
+ * 函数：发送梯形校正和翻转命令
+ ***************************************************/
+void sendKeystoneAndFlip(int pan, int tilt, int flip) {
+  Wire.beginTransmission(I2C_ADDRESS);
+  Wire.write(0x26);  // Set Video Output Position Information
+  Wire.write(0x09);  // Size
+  Wire.write(pan & 0xFF);
+  Wire.write(tilt & 0xFF);
+  Wire.write(flip & 0xFF);
+  for (int i = 0; i < 6; i++) Wire.write((i == 0) ? 0x64 : 0x00);  // Fixed values
+  uint8_t error = Wire.endTransmission();
+  if (error) {
+    Serial.printf("I2C error while sending keystone command: %d\n", error);
+  } else {
+    Serial.println("Keystone and Flip command sent successfully.");
+  }
+}
+
+/***************************************************
+ * 函数：发送 I2C 命令
+ ***************************************************/
+void sendI2CCommand(const char* cmd) {
+  Wire.beginTransmission(I2C_ADDRESS);
+  for (int i = 0; i < strlen(cmd); i += 2) {
+    char byteStr[3] = {cmd[i], cmd[i + 1], '\0'};
+    uint8_t byteVal = (uint8_t)strtol(byteStr, NULL, 16);
+    Wire.write(byteVal);
+  }
+  uint8_t error = Wire.endTransmission();
+  if (error) {
+    Serial.printf("I2C error: %d\n", error);
+  } else {
+    Serial.println("Command sent successfully.");
+  }
+}
+
+/***************************************************
+ * 函数：读取温度和状态
+ ***************************************************
+void readTemperatureAndState() {
+  Wire.beginTransmission(I2C_ADDRESS);
+  Wire.write(0xA0);  // 获取温度命令
+  uint8_t error = Wire.endTransmission();
+  if (error) {
+    Serial.printf("I2C write error: %d\n", error);
+    return;
+  }
+
+  Wire.requestFrom(I2C_ADDRESS, 3); // 假设返回 3 字节
+  if (Wire.available() == 3) {
+    uint8_t tempHigh = Wire.read();
+    uint8_t tempLow = Wire.read();
+    currentTemperature = ((tempHigh << 8) | tempLow) / 100.0;
+    currentState = Wire.read();
+    Serial.printf("Temperature: %.2f°C, State: %d\n", currentTemperature, currentState);
+  } else {
+    Serial.println("Error reading temperature/state data.");
+  }
+}
+*/
+
+/***************************************************
+ * 函数：生成遥控器界面 HTML
+ ***************************************************/
+/*英文：*/
+String buildMainPageHtml() {
+  String page;
+  page += "<!DOCTYPE html><html><head>";
+  page += "<meta charset='utf-8'/>";
+  page += "<title>CXN0102 Controller v3.2 (Author vx:samzhangxian)</title>";
+  page += R"===(<style>
+      body {
+        font-family: Arial;
+        text-align: center;
+        background-color: #121212; /* 深色背景 */
+        color: #ffffff;           /* 浅色文字 */
+      }
+      .button {
+        font-size: 1.2rem;
+        padding: 0.5rem 1rem;
+        margin: 0.2rem;
+        background-color: #333333; /* 按钮也使用深色背景 */
+        color: #ffffff;            /* 按钮文字与背景对比 */
+        border: none;
+        border-radius: 4px;       /* 可选：让按钮稍微圆角 */
+      }
+      .slider-container {
+        margin: 1rem;
+      }
+      /* 使滑块在暗色背景下可见度更好（可选） */
+      input[type='range'] {
+        width: 200px;
+      }
+      select {
+        background-color: #333333;
+        color: #ffffff;
+      }
+    </style>)===";
+  page += "</head><body>";
+
+  // 右上角语言切换下拉框
+  page += "<div style='position: fixed; top: 10px; right: 10px;'>";
+  page += "<select id='langSelect' onchange='switchLanguage()'>";
+  page += "<option value='en'>English</option>";
+  page += "<option value='zh'>中文</option>";
+  page += "</select>";
+  page += "</div>";
+
+  page += "<h1 id='headerH1'>CXN0102 Controller</h1>";
+
+  // 指示灯样式
+  page += R"===(<style>
+  #statusIndicator {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: red; /* 默认红色（断开状态） */
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  }
+  </style>)===";
+  page += "<div id='statusIndicator'></div>"; 
+
+  // 基本控制功能
+  page += "<h2 id='basicControlsHeader'>Basic Controls</h2>";
+  page += "<button id='btnStartInput' class='button' onclick='sendCommand(1)'>Start Input</button>";
+  page += "<button id='btnStopInput' class='button' onclick='sendCommand(2)'>Stop Input</button>";
+  page += "<button id='btnReboot' class='button' onclick='sendCommand(3)'>Reboot</button>";
+  page += "<button id='btnShutdown' class='button' onclick='sendCommand(4)'>Shutdown</button>";
+
+  // 光轴调整
+  page += "<h2 id='opticalAxisHeader'>Optical Axis Adjustment</h2>";
+  page += "<button id='btnOpticalEnter' class='button' onclick='sendCommand(5)'>Enter/Next</button>";
+  page += "<button id='btnOpticalPlus' class='button' onclick='sendCommand(6)'>+</button>";
+  page += "<button id='btnOpticalMinus' class='button' onclick='sendCommand(7)'>-</button>";
+  page += "<button id='btnOpticalExit' class='button' onclick='sendCommand(9)'>Exit (Save)</button>";
+
+  // 双相位调整
+  page += "<h2 id='biPhaseHeader'>Bi-Phase Adjustment</h2>";
+  page += "<button id='btnBiPhaseEnter' class='button' onclick='sendCommand(10)'>Enter/Next</button>";
+  page += "<button id='btnBiPhasePlus' class='button' onclick='sendCommand(11)'>+</button>";
+  page += "<button id='btnBiPhaseMinus' class='button' onclick='sendCommand(12)'>-</button>";
+  page += "<button id='btnBiPhaseExit' class='button' onclick='sendCommand(14)'>Exit (Save)</button>";
+
+  // 梯形校正部分
+  page += "<h2 id='keystoneHeader'>Keystone Adjustment</h2>";
+  page += "<div class='slider-container'>";
+  page += "<label id='labelHorizontal'>Horizontal: <input type='range' min='-30' max='30' value='0' id='pan'></label>";
+  page += "<label id='labelVertical'>Vertical: <input type='range' min='-20' max='20' value='0' id='tilt'></label>";
+  page += "<label id='labelFlipMode'>Flip Mode: <select id='flip'><option id='optionFlipNone' value='0'>None</option><option id='optionFlipHorizontal' value='1'>Horizontal</option><option id='optionFlipVertical' value='2'>Vertical</option><option id='optionFlipBoth' value='3'>Both</option></select></label>";
+  page += "<button id='btnKeystoneApply' class='button' onclick='updateKeystone()'>Apply</button>";
+  page += "</div>";
+
+  // 自定义命令
+  page += "<h2 id='customI2CHeader'>Custom I2C Command(eg.0b0100 for shutdown)</h2>";
+  page += "<input type='text' id='customCmd' placeholder='Enter hex command'/>";
+  page += "<button id='btnSendCustom' class='button' onclick='sendCustomCommand()'>Send</button>";
+  page += R"===(<script>
+      function sendCustomCommand() {
+        const cmd = document.getElementById('customCmd').value.trim();
+        if (!cmd) {
+          alert('Please enter a command!');
+          return;
+        }
+        fetch(`/custom_command?cmd=${cmd}`)
+          .then(resp => resp.text())
+          .then(alert);
+      }
+    </script>)===";
+
+  // WiFi 发射功率部分
+  page += "<h2 id='wifiTxHeader'>WiFi Transmit Power</h2>";
+  page += "<label id='labelSelectPower' for='txPower'>Select Power (dBm):</label>";
+  page += "<select id='txPower'>";
+  page += "<option id='option78' value='78'>19.5 dBm (≈90mW)</option>";
+  page += "<option id='option76' value='76'>19 dBm (≈79mW)</option>";
+  page += "<option id='option74' value='74'>18.5 dBm (≈71mW)</option>";
+  page += "<option id='option68' value='68'>17 dBm (≈50mW)</option>";
+  page += "<option id='option60' value='60'>15 dBm (≈32mW)</option>";
+  page += "<option id='option52' value='52'>13 dBm (≈20mW)</option>";
+  page += "<option id='option44' value='44'>11 dBm (≈12mW)</option>";
+  page += "<option id='option34' value='34'>8.5 dBm (≈7mW)</option>";
+  page += "<option id='option28' value='28'>7 dBm (≈5mW)</option>";
+  page += "<option id='option20' value='20'>5 dBm (≈3mW)</option>";
+  page += "<option id='option8' value='8'>2 dBm (≈1.6mW)</option>";
+  page += "<option id='optionMinus4' value='-4'>-1 dBm (≈0.8mW)</option>";
+  page += "</select>";
+  page += "<button id='btnTxApply' class='button' onclick='updateTxPower()'>Apply</button>";
+
+  // 插入 JavaScript 代码，包括 localStorage 逻辑
+  page += R"===(<script>
+      // 检查连接状态
+      function checkConnection() {
+          fetch('/ping')
+              .then(response => {
+                  if (response.ok) {
+                      document.getElementById('statusIndicator').style.backgroundColor = 'green'; // 连接正常
+                  } else {
+                      document.getElementById('statusIndicator').style.backgroundColor = 'red'; // 连接失败
+                  }
+              })
+              .catch(() => {
+                  document.getElementById('statusIndicator').style.backgroundColor = 'red'; // 服务器无响应
+              });
+      }
+      setInterval(checkConnection, 1000); // 每秒检查一次连接状态
+
+      // 发送 I2C 命令
+      function sendCommand(cmd) {
+          fetch(`/command?cmd=${cmd}`)
+              .then(resp => resp.text())
+              .then(console.log);
+      }
+
+      // 更新梯形校正设置并保存到 localStorage
+      function updateKeystone() {
+          const pan = document.getElementById('pan').value;
+          const tilt = document.getElementById('tilt').value;
+          const flip = document.getElementById('flip').value;
+          localStorage.setItem('keystonePan', pan);
+          localStorage.setItem('keystoneTilt', tilt);
+          localStorage.setItem('keystoneFlip', flip);
+          fetch(`/keystone?pan=${pan}&tilt=${tilt}&flip=${flip}`)
+              .then(resp => resp.text())
+              .then(console.log);
+      }
+
+      // 更新 WiFi 发射功率设置并保存到 localStorage
+      function updateTxPower() {
+          const power = document.getElementById('txPower').value;
+          localStorage.setItem('txPower', power);
+          fetch(`/set_tx_power?power=${power}`)
+              .then(resp => resp.text())
+              .then(alert);
+      }
+
+      // 页面加载时自动恢复并应用之前保存的设置
+      document.addEventListener('DOMContentLoaded', function() {
+          // 恢复梯形校正设置
+          const savedPan = localStorage.getItem('keystonePan');
+          const savedTilt = localStorage.getItem('keystoneTilt');
+          const savedFlip = localStorage.getItem('keystoneFlip');
+          if (savedPan !== null && savedTilt !== null && savedFlip !== null) {
+              document.getElementById('pan').value = savedPan;
+              document.getElementById('tilt').value = savedTilt;
+              document.getElementById('flip').value = savedFlip;
+              updateKeystone();
+          }
+          // 恢复 WiFi 发射功率设置
+          const savedTxPower = localStorage.getItem('txPower');
+          if (savedTxPower !== null) {
+              document.getElementById('txPower').value = savedTxPower;
+              updateTxPower();
+          }
+      });
+    </script>)===";
+
+  // 新增：语言切换脚本及翻译字典
+  page += R"===(<script>
+      var languages = {
+        "en": {
+          "title": "CXN0102 Controller v3.2 (Author vx:samzhangxian)",
+          "h1": "CXN0102 Controller",
+          "basicControls": "Basic Controls",
+          "startInput": "Start Input",
+          "stopInput": "Stop Input",
+          "reboot": "Reboot",
+          "shutdown": "Shutdown",
+          "opticalAxisAdjustment": "Optical Axis Adjustment",
+          "enter": "Enter/Next",
+          "exitSave": "Exit (Save)",
+          "biPhaseAdjustment": "Bi-Phase Adjustment",
+          "keystoneAdjustment": "Keystone Adjustment",
+          "horizontal": "Horizontal:",
+          "vertical": "Vertical:",
+          "flipMode": "Flip Mode:",
+          "none": "None",
+          "horizontalOption": "Horizontal",
+          "verticalOption": "Vertical",
+          "both": "Both",
+          "apply": "Apply",
+          "customI2C": "Custom I2C Command (eg.0b0100 for shutdown)",
+          "enterHexCmd": "Enter hex command",
+          "send": "Send",
+          "wifiTransmitPower": "WiFi Transmit Power",
+          "selectPower": "Select Power (dBm):",
+          "option78": "19.5 dBm (≈90mW)",
+          "option76": "19 dBm (≈79mW)",
+          "option74": "18.5 dBm (≈71mW)",
+          "option68": "17 dBm (≈50mW)",
+          "option60": "15 dBm (≈32mW)",
+          "option52": "13 dBm (≈20mW)",
+          "option44": "11 dBm (≈12mW)",
+          "option34": "8.5 dBm (≈7mW)",
+          "option28": "7 dBm (≈5mW)",
+          "option20": "5 dBm (≈3mW)",
+          "option8": "2 dBm (≈1.6mW)",
+          "optionMinus4": "-1 dBm (≈0.8mW)"
+        },
+        "zh": {
+          "title": "CXN0102 控制器 v3.2 (作者 vx:samzhangxian)",
+          "h1": "CXN0102 控制器",
+          "basicControls": "基本控制功能",
+          "startInput": "开始输入",
+          "stopInput": "停止输入",
+          "reboot": "重启",
+          "shutdown": "关机",
+          "opticalAxisAdjustment": "光轴调整",
+          "enter": "进入/切换下一项",
+          "exitSave": "退出（保存）",
+          "biPhaseAdjustment": "双相位调整",
+          "keystoneAdjustment": "梯形校正",
+          "horizontal": "水平:",
+          "vertical": "垂直:",
+          "flipMode": "翻转模式:",
+          "none": "无",
+          "horizontalOption": "水平",
+          "verticalOption": "垂直",
+          "both": "双向",
+          "apply": "应用",
+          "customI2C": "自定义 I2C 命令（例如：0b0100 关机）",
+          "enterHexCmd": "输入十六进制命令",
+          "send": "发送",
+          "wifiTransmitPower": "WiFi 发射功率",
+          "selectPower": "选择功率 (dBm):",
+          "option78": "19.5 dBm (约90毫瓦)",
+          "option76": "19 dBm (约79毫瓦)",
+          "option74": "18.5 dBm (约71毫瓦)",
+          "option68": "17 dBm (约50毫瓦)",
+          "option60": "15 dBm (约32毫瓦)",
+          "option52": "13 dBm (约20毫瓦)",
+          "option44": "11 dBm (约12毫瓦)",
+          "option34": "8.5 dBm (约7毫瓦)",
+          "option28": "7 dBm (约5毫瓦)",
+          "option20": "5 dBm (约3毫瓦)",
+          "option8": "2 dBm (约1.6毫瓦)",
+          "optionMinus4": "-1 dBm (约0.8毫瓦)"
+        }
+      };
+
+      function switchLanguage() {
+          var lang = document.getElementById('langSelect').value;
+          document.title = languages[lang].title;
+          document.getElementById('headerH1').innerText = languages[lang].h1;
+          document.getElementById('basicControlsHeader').innerText = languages[lang].basicControls;
+          document.getElementById('btnStartInput').innerText = languages[lang].startInput;
+          document.getElementById('btnStopInput').innerText = languages[lang].stopInput;
+          document.getElementById('btnReboot').innerText = languages[lang].reboot;
+          document.getElementById('btnShutdown').innerText = languages[lang].shutdown;
+
+          document.getElementById('opticalAxisHeader').innerText = languages[lang].opticalAxisAdjustment;
+          document.getElementById('btnOpticalEnter').innerText = languages[lang].enter;
+          // “+” 和 “-” 保持不变
+          document.getElementById('btnOpticalExit').innerText = languages[lang].exitSave;
+
+          document.getElementById('biPhaseHeader').innerText = languages[lang].biPhaseAdjustment;
+          document.getElementById('btnBiPhaseEnter').innerText = languages[lang].enter;
+          document.getElementById('btnBiPhaseExit').innerText = languages[lang].exitSave;
+
+          document.getElementById('keystoneHeader').innerText = languages[lang].keystoneAdjustment;
+          // 更新梯形校正标签
+          var labelH = document.getElementById('labelHorizontal');
+          labelH.childNodes[0].nodeValue = languages[lang].horizontal + " ";
+          var labelV = document.getElementById('labelVertical');
+          labelV.childNodes[0].nodeValue = languages[lang].vertical + " ";
+          var labelF = document.getElementById('labelFlipMode');
+          labelF.childNodes[0].nodeValue = languages[lang].flipMode + " ";
+          // 更新翻转模式选项
+          document.getElementById('optionFlipNone').innerText = languages[lang].none;
+          document.getElementById('optionFlipHorizontal').innerText = languages[lang].horizontalOption;
+          document.getElementById('optionFlipVertical').innerText = languages[lang].verticalOption;
+          document.getElementById('optionFlipBoth').innerText = languages[lang].both;
+          document.getElementById('btnKeystoneApply').innerText = languages[lang].apply;
+
+          document.getElementById('customI2CHeader').innerText = languages[lang].customI2C;
+          document.getElementById('customCmd').placeholder = languages[lang].enterHexCmd;
+          document.getElementById('btnSendCustom').innerText = languages[lang].send;
+
+          document.getElementById('wifiTxHeader').innerText = languages[lang].wifiTransmitPower;
+          document.getElementById('labelSelectPower').innerText = languages[lang].selectPower;
+          document.getElementById('option78').innerText = languages[lang].option78;
+          document.getElementById('option76').innerText = languages[lang].option76;
+          document.getElementById('option74').innerText = languages[lang].option74;
+          document.getElementById('option68').innerText = languages[lang].option68;
+          document.getElementById('option60').innerText = languages[lang].option60;
+          document.getElementById('option52').innerText = languages[lang].option52;
+          document.getElementById('option44').innerText = languages[lang].option44;
+          document.getElementById('option34').innerText = languages[lang].option34;
+          document.getElementById('option28').innerText = languages[lang].option28;
+          document.getElementById('option20').innerText = languages[lang].option20;
+          document.getElementById('option8').innerText = languages[lang].option8;
+          document.getElementById('optionMinus4').innerText = languages[lang].optionMinus4;
+          document.getElementById('btnTxApply').innerText = languages[lang].apply;
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+          var savedLang = localStorage.getItem('pageLang') || 'en';
+          document.getElementById('langSelect').value = savedLang;
+          switchLanguage();
+      });
+      document.getElementById('langSelect').addEventListener('change', function() {
+          localStorage.setItem('pageLang', this.value);
+      });
+    </script>)===";
+
+  page += "</body></html>";
+  return page;
+}
+
+/***************************************************
+ * setup()
+ ***************************************************/
+void setup() {
+  Serial.begin(9600);
+  delay(5000);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  check_mac();
+  ESP_LOGI("MAIN", "Running secure firmware...");
+  Serial.println("starting wifi");
+  WiFi.softAP(AP_SSID, AP_PASSWORD);
+  Serial.println("started");
+  /*
+  esp_pm_lock_handle_t pm_light_sleep_lock;
+  esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "cpu-freq", &pm_light_sleep_lock);
+  esp_pm_lock_acquire(pm_light_sleep_lock);
+  */
+  pinMode(COM_REQ_PIN, INPUT);
+  Wire.begin(SDA_PIN, SCL_PIN);
+
+  // 设置路由
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(200, "text/html", buildMainPageHtml());
+  });
+
+  server.on("/command", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (!request->hasParam("cmd")) {
+      request->send(400, "text/plain", "Missing cmd parameter");
+      return;
+    }
+    String cmdStr = request->getParam("cmd")->value();
+    int cmdIndex = cmdStr.toInt();
+    if (cmdIndex < 1 || cmdIndex > sizeof(commands) / sizeof(commands[0])) {
+      request->send(400, "text/plain", "Invalid command index");
+      return;
+    }
+    sendI2CCommand(commands[cmdIndex - 1]);
+    request->send(200, "text/plain", "Command executed");
+  });
+
+  server.on("/keystone", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (!request->hasParam("pan") || !request->hasParam("tilt") || !request->hasParam("flip")) {
+      request->send(400, "text/plain", "Missing parameters");
+      return;
+    }
+    int pan = request->getParam("pan")->value().toInt();
+    int tilt = request->getParam("tilt")->value().toInt();
+    int flip = request->getParam("flip")->value().toInt();
+    sendKeystoneAndFlip(pan, tilt, flip);
+    request->send(200, "text/plain", "Keystone and Flip updated");
+  });
+
+  //自定义命令
+  server.on("/custom_command", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (!request->hasParam("cmd")) {
+      request->send(400, "text/plain", "Missing cmd parameter");
+      return;
+    }
+    String customCmd = request->getParam("cmd")->value();
+    if (customCmd.length() % 2 != 0 || customCmd.length() > 50) { // 防止非法输入
+      request->send(400, "text/plain", "Invalid command format");
+      return;
+    }
+    sendI2CCommand(customCmd.c_str());
+    request->send(200, "text/plain", "Custom command sent");
+  });
+  //选择WiFi发射功率
+  server.on("/set_tx_power", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (!request->hasParam("power")) {
+        request->send(400, "text/plain", "Missing power parameter");
+        return;
+    }
+
+    int power = request->getParam("power")->value().toInt();
+    setTxPower(power);
+
+    request->send(200, "text/plain", "Transmit Power set to " + String(power / 4.0) + " dBm");
+  });
+  //指示灯
+  server.on("/ping", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(200, "text/plain", "OK");
+  });
+
+
+  server.begin();
+
+  Serial.println("HTTP Server started.");
+
+  sendI2CCommand(commands[0]);
+  Serial.println("Start Input command sent automatically after 5 seconds.");
+}
+
+/***************************************************
+ * loop()
+ ***************************************************/
+void loop() {
+  // 检测按钮按下（低电平）
+  if (digitalRead(BUTTON_PIN) == LOW) {
+    delay(50); // 去抖动
+    if (digitalRead(BUTTON_PIN) == LOW) { // 确认按钮仍被按下
+      sendI2CCommand(commands[1]);
+      delay(100); // 去抖动
+      sendI2CCommand(commands[3]); // commands[3] 为关机命令 "0b0100"
+      Serial.println("Shutdown command sent via button press.");
+      // 等待按钮松开，防止重复触发
+      while (digitalRead(BUTTON_PIN) == LOW) {
+        delay(10);
+      }
+    }
+  }
+  delay(10);
+}
