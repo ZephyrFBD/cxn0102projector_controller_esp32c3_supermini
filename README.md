@@ -1,12 +1,13 @@
 # cxn0102projector_controller_esp32c3_supermini
 - 中文：[Readme_chinese.md](Readme_chinese.md)
-- connections（接线图和页面说明）：[click here](/v3.2/Esp32c3supermini驱动小宝光机接线图.pdf)
+- connections pdf（接线图和页面说明）：[click here](/v3.2/Esp32c3supermini驱动小宝光机接线图.pdf)
 
 > **🚀 Important Notice:**  
 > This project is **now fully open-source**! You can freely download, compile, and flash the firmware onto your ESP32-C3 SuperMini without a license.
 
 ---
-
+> **Connections:**  
+![ESP32 Connect](/figures/Esp32c3_supermini_wiring.png)
 ## 🔥 How to Download and Flash the Binary Files
 
 Follow the detailed steps below to flash the binary files onto your ESP32-C3 development board using the **ESP32 Flash Download Tool**.
