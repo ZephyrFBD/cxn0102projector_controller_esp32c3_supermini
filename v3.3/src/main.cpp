@@ -45,6 +45,11 @@ static const char* commands[] = {
   "7003",      // 23: Keystone Horizontal +
   "8000",      // 24: Color Temperature -
   "8001",      // 25: Color Temperature +
+  "4300",      // 26: Set Brightness (默认值)
+  "4500",      // 27: Set Contrast
+  "4700",      // 28: Set Hue
+  "4900",      // 29: Set Saturation
+  "4F00",      // 30: Set Sharpness
 };
 
 // ---------------------- Web Server --------------------------
@@ -62,15 +67,30 @@ AsyncWebServer server(80);
 #define ADDR_TXPOWER  3   // int8_t   one of {78,76,74,68,60,52,44,34,28,20,8,-4}
 #define ADDR_LANG     4   // uint8_t  0=en,1=zh
 
+// EEPROM 地址扩展
+#define ADDR_BRIGHTNESS  5
+#define ADDR_CONTRAST    6
+#define ADDR_HUE         7
+#define ADDR_SATURATION  8
+#define ADDR_SHARPNESS   9
+
 // ---------------------- Persisted State ---------------------
 int panV  = 0;
 int tiltV = 0;
 int flipV = 0;
 int txPowerV = 34; // default 8.5dBm
 uint8_t langV = 0; // 0=en,1=zh
+uint8_t brightnessV = 128;
+uint8_t contrastV = 128;
+uint8_t hueV = 128;
+uint8_t saturationV = 128;
+uint8_t sharpnessV = 128;
 
 // ---------------------- Utils -------------------------------
 static inline int clamp(int v, int lo, int hi) { return v < lo ? lo : (v > hi ? hi : v); }
+static inline int map(int x, int in_min, int in_max, int out_min, int out_max) {
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
 
 void saveSettings() {
   EEPROM.write(ADDR_PAN,     (int8_t)panV);
@@ -78,6 +98,11 @@ void saveSettings() {
   EEPROM.write(ADDR_FLIP,    (uint8_t)flipV);
   EEPROM.write(ADDR_TXPOWER, (int8_t)txPowerV);
   EEPROM.write(ADDR_LANG,    (uint8_t)langV);
+  EEPROM.write(ADDR_BRIGHTNESS, brightnessV);
+  EEPROM.write(ADDR_CONTRAST,   contrastV);
+  EEPROM.write(ADDR_HUE,        hueV);
+  EEPROM.write(ADDR_SATURATION, saturationV);
+  EEPROM.write(ADDR_SHARPNESS,  sharpnessV);
   EEPROM.write(ADDR_MAGIC,   MAGIC_VALUE);
   EEPROM.commit();
   Serial.println("[EEPROM] Settings saved.");
@@ -88,23 +113,34 @@ void loadSettings() {
   if (magic != MAGIC_VALUE) {
     // First boot defaults
     panV = 0; tiltV = 0; flipV = 0; txPowerV = 34; langV = 0;
+    brightnessV = 128; contrastV = 128; hueV = 128; saturationV = 128; sharpnessV = 128;
     saveSettings();
     Serial.println("[EEPROM] Initialized defaults.");
     return;
   }
-  panV     = (int8_t)EEPROM.read(ADDR_PAN);
-  tiltV    = (int8_t)EEPROM.read(ADDR_TILT);
-  flipV    = (uint8_t)EEPROM.read(ADDR_FLIP);
-  txPowerV = (int8_t)EEPROM.read(ADDR_TXPOWER);
-  langV    = (uint8_t)EEPROM.read(ADDR_LANG);
+  panV        = (int8_t)EEPROM.read(ADDR_PAN);
+  tiltV       = (int8_t)EEPROM.read(ADDR_TILT);
+  flipV       = (uint8_t)EEPROM.read(ADDR_FLIP);
+  txPowerV    = (int8_t)EEPROM.read(ADDR_TXPOWER);
+  langV       = (uint8_t)EEPROM.read(ADDR_LANG);
+  brightnessV = EEPROM.read(ADDR_BRIGHTNESS);
+  contrastV   = EEPROM.read(ADDR_CONTRAST);
+  hueV        = EEPROM.read(ADDR_HUE);
+  saturationV = EEPROM.read(ADDR_SATURATION);
+  sharpnessV  = EEPROM.read(ADDR_SHARPNESS);
 
   // Basic sanitization
   panV  = clamp(panV,  -30, 30);
   tiltV = clamp(tiltV, -20, 20);
   if (flipV < 0 || flipV > 3) flipV = 0;
+  brightnessV = clamp(brightnessV, 0, 255);
+  contrastV   = clamp(contrastV,   0, 255);
+  hueV        = clamp(hueV,        0, 255);
+  saturationV = clamp(saturationV, 0, 255);
+  sharpnessV  = clamp(sharpnessV,  0, 255);
 
-  Serial.printf("[EEPROM] Loaded: pan=%d tilt=%d flip=%d txPower=%d lang=%u\n",
-                panV, tiltV, flipV, txPowerV, langV);
+  Serial.printf("[EEPROM] Loaded: pan=%d tilt=%d flip=%d txPower=%d lang=%u brightness=%u contrast=%u hue=%u saturation=%u sharpness=%u\n",
+                panV, tiltV, flipV, txPowerV, langV, brightnessV, contrastV, hueV, saturationV, sharpnessV);
 }
 
 // ---------------------- WiFi Tx Power -----------------------
@@ -251,8 +287,8 @@ String buildMainPageHtml() {
   // Keystone + Flip
   page += "<div class='card'><h2 id='keystoneHeader'>Keystone Adjustment</h2>";
   page += "<div class='slider-container'>";
-  page += "<label id='labelHorizontal'>Horizontal: <input type='range' min='-30' max='30' value='0' id='pan'></label>";
-  page += "<label id='labelVertical'>Vertical: <input type='range' min='-20' max='20' value='0' id='tilt'></label>";
+  page += "<label id='labelHorizontal'>Horizontal: <input type='range' min='-30' max='30' id='pan'></label>";
+  page += "<label id='labelVertical'>Vertical: <input type='range' min='-20' max='20' id='tilt'></label>";
   page += "<label id='labelFlipMode'>Flip Mode: <select id='flip'>"
           "<option id='optionFlipNone' value='0'>None</option>"
           "<option id='optionFlipHorizontal' value='1'>Horizontal</option>"
@@ -260,6 +296,19 @@ String buildMainPageHtml() {
           "<option id='optionFlipBoth' value='3'>Both</option>"
           "</select></label>";
   page += "<button id='btnKeystoneApply' class='button' onclick='applyKeystone()'>Apply</button>";
+  page += "</div></div>";
+
+  // Picture Quality Adjustment
+  page += "<div class='card'><h2 id='pqHeader'>Picture Quality Adjustment</h2>";
+  page += "<div class='slider-container'>";
+  page += "<label id='labelBrightness'>Brightness: <input type='range' min='0' max='255' id='brightness'></label>";
+  page += "<label id='labelContrast'>Contrast: <input type='range' min='0' max='255' id='contrast'></label>";
+  page += "<label id='labelHueU'>Hue U: <input type='range' min='0' max='255' id='hueU'></label>";
+  page += "<label id='labelHueV'>Hue V: <input type='range' min='0' max='255' id='hueV'></label>";
+  page += "<label id='labelSaturationU'>Saturation U: <input type='range' min='0' max='255' id='satU'></label>";
+  page += "<label id='labelSaturationV'>Saturation V: <input type='range' min='0' max='255' id='satV'></label>";
+  page += "<label id='labelSharpness'>Sharpness: <input type='range' min='0' max='255' id='sharpness'></label>";
+  page += "<button id='btnPQApply' class='button' onclick='applyPQ()'>Apply</button>";
   page += "</div></div>";
 
   // Custom I2C
@@ -287,6 +336,17 @@ String buildMainPageHtml() {
   page += "<option id='optionMinus4' value='-4'>-1 dBm (≈0.8mW)</option>";
   page += "</select> ";
   page += "<button id='btnTxApply' class='button' onclick='applyTx()'>Apply</button>";
+  page += "</div>";
+
+  // System
+  page += "<div class='card'><h2 id='systemHeader'>System</h2>";
+  page += "<div style='margin-bottom:8px;'><span id='temperatureLabel'>温度:</span> <span id='temperatureValue'>--</span> ℃</div>";
+  page += "<button id='btnFactoryReset' class='button' onclick='factoryReset()'>恢复出厂设置</button>";
+  page += "<button id='btnSaveAll' class='button' onclick='saveAllParams()'>保存所有参数</button>";
+  page += "<button id='btnGetDeviceInfo' class='button' onclick='getDeviceInfo()'>获取设备信息</button>";
+  page += "<button id='btnClearEEPROM' class='button' onclick='clearEEPROM()'>清空EEPROM</button>";
+  page += "<label id='labelTestPattern' for='testPattern'>测试图案: <select id='testPattern'><option value='0'>停止</option><option value='1'>色条</option><option value='2'>网格</option></select></label>";
+  page += "<button id='btnTestPattern' class='button' onclick='sendTestPattern()'>输出测试图案</button>";
   page += "</div>";
 
   // Scripts: connection check, commands, persistence via backend
@@ -329,10 +389,23 @@ String buildMainPageHtml() {
       alert('Transmit Power applied.');
     }
 
+    // --- picture quality ---
+    async function applyPQ() {
+      const b = document.getElementById('brightness').value;
+      const c = document.getElementById('contrast').value;
+      const hueU = document.getElementById('hueU').value;
+      const hueV = document.getElementById('hueV').value;
+      const satU = document.getElementById('satU').value;
+      const satV = document.getElementById('satV').value;
+      const sh = document.getElementById('sharpness').value;
+      await fetch(`/set_pq?brightness=${b}&contrast=${c}&hueU=${hueU}&hueV=${hueV}&satU=${satU}&satV=${satV}&sharpness=${sh}`);
+      alert('Picture Quality updated.');
+    }
+
     // --- language pack ---
     var languages = {
       "en": {
-        "title": "CXN0102 Controller v3.2 (Author vx:samzhangxian)",
+        "title": "CXN0102 Controller v3.3 (Author vx:samzhangxian)",
         "h1": "CXN0102 Controller",
         "basicControls": "Basic Controls",
         "startInput": "Start Input",
@@ -352,6 +425,12 @@ String buildMainPageHtml() {
         "verticalOption": "Vertical",
         "both": "Both",
         "apply": "Apply",
+        "pqAdjustment": "Picture Quality Adjustment",
+        "brightness": "Brightness:",
+        "contrast": "Contrast:",
+        "hue": "Hue:",
+        "saturation": "Saturation:",
+        "sharpness": "Sharpness:",
         "customI2C": "Custom I2C Command (eg.0b0100 for shutdown)",
         "enterHexCmd": "Enter hex command",
         "send": "Send",
@@ -368,10 +447,26 @@ String buildMainPageHtml() {
         "option28": "7 dBm (≈5mW)",
         "option20": "5 dBm (≈3mW)",
         "option8": "2 dBm (≈1.6mW)",
-        "optionMinus4": "-1 dBm (≈0.8mW)"
+        "optionMinus4": "-1 dBm (≈0.8mW)",
+        "system": "System",
+        "factoryReset": "Factory Reset",
+        "saveAll": "Save All Parameters",
+        "getDeviceInfo": "Get Device Info",
+        "clearEEPROM": "Clear EEPROM",
+        "testPattern": "Test Pattern:",
+        "testPatternStop": "Stop",
+        "testPatternColorBar": "Color Bar",
+        "testPatternGrid": "Grid",
+        "testPatternBtn": "Output Test Pattern",
+        "factoryResetAlert": "Factory reset command sent.",
+        "saveAllAlert": "Save all command sent.",
+        "getDeviceInfoAlert": "Device info:\n",
+        "getDeviceInfoFail": "Failed to get device info!",
+        "testPatternAlert": "Test pattern command sent.",
+        "temperature": "Temperature:"
       },
       "zh": {
-        "title": "CXN0102 控制器 v3.2 (作者 vx:samzhangxian)",
+        "title": "CXN0102 控制器 v3.3 (作者 vx:samzhangxian)",
         "h1": "CXN0102 控制器",
         "basicControls": "基本控制功能",
         "startInput": "开始输入",
@@ -391,6 +486,12 @@ String buildMainPageHtml() {
         "verticalOption": "垂直",
         "both": "双向",
         "apply": "应用",
+        "pqAdjustment": "画质调整",
+        "brightness": "亮度:",
+        "contrast": "对比度:",
+        "hue": "色调:",
+        "saturation": "饱和度:",
+        "sharpness": "锐度:",
         "customI2C": "自定义 I2C 命令（例如：0b0100 关机）",
         "enterHexCmd": "输入十六进制命令",
         "send": "发送",
@@ -407,7 +508,23 @@ String buildMainPageHtml() {
         "option28": "7 dBm (约5毫瓦)",
         "option20": "5 dBm (约3毫瓦)",
         "option8": "2 dBm (约1.6毫瓦)",
-        "optionMinus4": "-1 dBm (约0.8毫瓦)"
+        "optionMinus4": "-1 dBm (约0.8毫瓦)",
+        "system": "系统",
+        "factoryReset": "恢复出厂设置",
+        "saveAll": "保存所有参数",
+        "getDeviceInfo": "获取设备信息",
+        "clearEEPROM": "清空EEPROM",
+        "testPattern": "测试图案：",
+        "testPatternStop": "停止",
+        "testPatternColorBar": "色条",
+        "testPatternGrid": "网格",
+        "testPatternBtn": "输出测试图案",
+        "factoryResetAlert": "已发送恢复出厂设置命令。",
+        "saveAllAlert": "已发送保存所有参数命令。",
+        "getDeviceInfoAlert": "设备信息：\n",
+        "getDeviceInfoFail": "获取设备信息失败！",
+        "testPatternAlert": "已发送测试图案命令。",
+        "temperature": "温度:"
       }
     };
 
@@ -416,40 +533,38 @@ String buildMainPageHtml() {
       var dict = languages[lang];
       document.title = dict.title;
       document.getElementById('headerH1').innerText = dict.h1;
-
       document.getElementById('basicControlsHeader').innerText = dict.basicControls;
       document.getElementById('btnStartInput').innerText = dict.startInput;
       document.getElementById('btnStopInput').innerText = dict.stopInput;
       document.getElementById('btnReboot').innerText = dict.reboot;
       document.getElementById('btnShutdown').innerText = dict.shutdown;
-
       document.getElementById('opticalAxisHeader').innerText = dict.opticalAxisAdjustment;
       document.getElementById('btnOpticalEnter').innerText = dict.enter;
       document.getElementById('btnOpticalExit').innerText = dict.exitSave;
-
       document.getElementById('biPhaseHeader').innerText = dict.biPhaseAdjustment;
       document.getElementById('btnBiPhaseEnter').innerText = dict.enter;
       document.getElementById('btnBiPhaseExit').innerText = dict.exitSave;
-
       document.getElementById('keystoneHeader').innerText = dict.keystoneAdjustment;
-
-      var labelH = document.getElementById('labelHorizontal');
-      labelH.childNodes[0].nodeValue = dict.horizontal + " ";
-      var labelV = document.getElementById('labelVertical');
-      labelV.childNodes[0].nodeValue = dict.vertical + " ";
-      var labelF = document.getElementById('labelFlipMode');
-      labelF.childNodes[0].nodeValue = dict.flipMode + " ";
-
+      document.getElementById('labelHorizontal').childNodes[0].nodeValue = dict.horizontal + " ";
+      document.getElementById('labelVertical').childNodes[0].nodeValue = dict.vertical + " ";
+      document.getElementById('labelFlipMode').childNodes[0].nodeValue = dict.flipMode + " ";
       document.getElementById('optionFlipNone').innerText = dict.none;
       document.getElementById('optionFlipHorizontal').innerText = dict.horizontalOption;
       document.getElementById('optionFlipVertical').innerText = dict.verticalOption;
       document.getElementById('optionFlipBoth').innerText = dict.both;
       document.getElementById('btnKeystoneApply').innerText = dict.apply;
-
+      document.getElementById('pqHeader').innerText = dict.pqAdjustment;
+      document.getElementById('labelBrightness').childNodes[0].nodeValue = dict.brightness + " ";
+      document.getElementById('labelContrast').childNodes[0].nodeValue = dict.contrast + " ";
+      document.getElementById('labelHueU').childNodes[0].nodeValue = dict.hueU + " ";
+      document.getElementById('labelHueV').childNodes[0].nodeValue = dict.hueV + " ";
+      document.getElementById('labelSaturationU').childNodes[0].nodeValue = dict.saturationU + " ";
+      document.getElementById('labelSaturationV').childNodes[0].nodeValue = dict.saturationV + " ";
+      document.getElementById('labelSharpness').childNodes[0].nodeValue = dict.sharpness + " ";
+      document.getElementById('btnPQApply').innerText = dict.apply;
       document.getElementById('customI2CHeader').innerText = dict.customI2C;
       document.getElementById('customCmd').placeholder = dict.enterHexCmd;
       document.getElementById('btnSendCustom').innerText = dict.send;
-
       document.getElementById('wifiTxHeader').innerText = dict.wifiTransmitPower;
       document.getElementById('labelSelectPower').innerText = dict.selectPower;
       document.getElementById('option78').innerText = dict.option78;
@@ -465,6 +580,17 @@ String buildMainPageHtml() {
       document.getElementById('option8').innerText = dict.option8;
       document.getElementById('optionMinus4').innerText = dict.optionMinus4;
       document.getElementById('btnTxApply').innerText = dict.apply;
+      document.getElementById('systemHeader').innerText = dict.system;
+      document.getElementById('btnFactoryReset').innerText = dict.factoryReset;
+      document.getElementById('btnSaveAll').innerText = dict.saveAll;
+      document.getElementById('btnGetDeviceInfo').innerText = dict.getDeviceInfo;
+      document.getElementById('btnClearEEPROM').innerText = dict.clearEEPROM;
+      document.getElementById('labelTestPattern').childNodes[0].nodeValue = dict.testPattern;
+      document.getElementById('testPattern').options[0].text = dict.testPatternStop;
+      document.getElementById('testPattern').options[1].text = dict.testPatternColorBar;
+      document.getElementById('testPattern').options[2].text = dict.testPatternGrid;
+      document.getElementById('btnTestPattern').innerText = dict.testPatternBtn;
+      document.getElementById('temperatureLabel').innerText = dict.temperature;
     }
 
     async function onLangChange() {
@@ -473,7 +599,6 @@ String buildMainPageHtml() {
       switchLanguage();
     }
 
-    // --- bootstrap: load persisted settings ---
     async function loadSettings() {
       try {
         const r = await fetch('/get_settings');
@@ -483,13 +608,73 @@ String buildMainPageHtml() {
         document.getElementById('flip').value     = s.flip;
         document.getElementById('txPower').value  = s.txPower;
         document.getElementById('langSelect').value = s.lang;
+        document.getElementById('brightness').value  = s.brightness;
+        document.getElementById('contrast').value    = s.contrast;
+        document.getElementById('hueU').value        = s.hueU ?? s.hue; // 兼容旧数据
+        document.getElementById('hueV').value        = s.hueV ?? s.hue;
+        document.getElementById('satU').value        = s.satU ?? s.saturation;
+        document.getElementById('satV').value        = s.satV ?? s.saturation;
+        document.getElementById('sharpness').value   = s.sharpness;
         switchLanguage();
       } catch(e) {
         console.error(e);
       }
     }
 
-    document.addEventListener('DOMContentLoaded', loadSettings);
+    // --- factory reset ---
+    function factoryReset() {
+      fetch("/factory_reset").then(r=>r.text()).then(()=>alert(languages[document.getElementById("langSelect").value].factoryResetAlert));
+    }
+    // --- save all params ---
+    function saveAllParams() {
+      fetch("/save_all").then(r=>r.text()).then(()=>alert(languages[document.getElementById("langSelect").value].saveAllAlert));
+    }
+    // --- clear EEPROM ---
+    function clearEEPROM() {
+      fetch("/clear_eeprom").then(r=>r.text()).then(()=>alert("EEPROM cleared."));
+    }
+    // --- get device info ---
+    async function getDeviceInfo() {
+      try {
+        const lang = document.getElementById('langSelect').value;
+        const dict = languages[lang];
+        const r = await fetch('/get_device_info');
+        const info = await r.json();
+        let msg = dict.getDeviceInfoAlert + "\n";
+        if(info.temperature) msg += `${dict.temperature} ${info.temperature.current}°C (${info.temperature.lower}~${info.temperature.upper}°C)\n`;
+        if(info.runtime) msg += `运行时间: ${info.runtime} 秒\n`;
+        if(info.version) msg += `固件版本: ${info.version.firmware}\n参数版本: ${info.version.parameter}\n数据版本: ${info.version.data}\n`;
+        if(info.lot_number) msg += `生产批号: ${info.lot_number}\n`;
+        if(info.serial_number) msg += `序列号: ${info.serial_number}\n`;
+        alert(msg);
+      } catch(e) {
+        const lang = document.getElementById('langSelect').value;
+        alert(languages[lang].getDeviceInfoFail);
+        console.error(e);
+      }
+    }
+    // --- send test pattern ---
+    function sendTestPattern() {
+      const lang = document.getElementById('langSelect').value;
+      fetch(`/test_pattern?type=${document.getElementById('testPattern').value}`)
+        .then(r=>r.text())
+        .then(()=>alert(languages[lang].testPatternAlert));
+    }
+    // --- update temperature ---
+    async function updateTemperature() {
+      try {
+        const r = await fetch('/get_temperature');
+        const t = await r.json();
+        document.getElementById('temperatureValue').innerText = (typeof t.temperature === 'number') ? t.temperature : '--';
+      } catch(e) {
+        document.getElementById('temperatureValue').innerText = '--';
+      }
+    }
+    setInterval(updateTemperature, 10000);
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSettings();
+      updateTemperature();
+    });
   </script>)===";
 
   page += "</body></html>";
@@ -601,7 +786,14 @@ void setup() {
     json += "\"tilt\":" + String(tiltV) + ",";
     json += "\"flip\":" + String(flipV) + ",";
     json += "\"txPower\":" + String(txPowerV) + ",";
-    json += "\"lang\":\"" + String((langV==0)?"en":"zh") + "\"";
+    json += "\"lang\":\"" + String((langV==0)?"en":"zh") + "\",";
+    json += "\"brightness\":" + String(brightnessV) + ",";
+    json += "\"contrast\":"   + String(contrastV)   + ",";
+    json += "\"hueU\":"       + String(hueV)        + ",";
+    json += "\"hueV\":"       + String(hueV)        + ",";
+    json += "\"satU\":"       + String(saturationV) + ",";
+    json += "\"satV\":"       + String(saturationV) + ",";
+    json += "\"sharpness\":"  + String(sharpnessV);
     json += "}";
     request->send(200, "application/json", json);
   });
@@ -638,7 +830,152 @@ void setup() {
     request->send(200, "text/plain", "Lang updated");
   });
 
-  server.begin();
+  // Set Picture Quality (via I2C)
+  server.on("/set_pq", HTTP_GET, [](AsyncWebServerRequest *request) {
+    bool pqChanged = false;
+    if (request->hasParam("brightness")) {
+      brightnessV = request->getParam("brightness")->value().toInt();
+      int val = map(brightnessV, 0, 255, -31, 31);
+      Wire.beginTransmission(I2C_ADDRESS);
+      Wire.write(0x43); // Set Brightness
+      Wire.write(0x01);
+      Wire.write((int8_t)val);
+      Wire.endTransmission();
+      pqChanged = true;
+    }
+    if (request->hasParam("contrast")) {
+      contrastV = request->getParam("contrast")->value().toInt();
+      int val = map(contrastV, 0, 255, -15, 15);
+      Wire.beginTransmission(I2C_ADDRESS);
+      Wire.write(0x45); // Set Contrast
+      Wire.write(0x01);
+      Wire.write((int8_t)val);
+      Wire.endTransmission();
+      pqChanged = true;
+    }
+    if (request->hasParam("hueU") && request->hasParam("hueV")) {
+      int hueU = request->getParam("hueU")->value().toInt();
+      int hueV = request->getParam("hueV")->value().toInt();
+      hueV = clamp(hueV, 0, 255); hueU = clamp(hueU, 0, 255);
+      int u = map(hueU, 0, 255, -15, 15);
+      int v = map(hueV, 0, 255, -15, 15);
+      Wire.beginTransmission(I2C_ADDRESS);
+      Wire.write(0x47); // Set Hue
+      Wire.write(0x02); // OP0=2
+      Wire.write((int8_t)u); // OP1: U
+      Wire.write((int8_t)v); // OP2: V
+      uint8_t error = Wire.endTransmission();
+      Serial.printf("[PQ] Set Hue U/V: %d/%d, I2C error=%d\n", u, v, error);
+      pqChanged = true;
+    }
+    if (request->hasParam("satU") && request->hasParam("satV")) {
+      int satU = request->getParam("satU")->value().toInt();
+      int satV = request->getParam("satV")->value().toInt();
+      satU = clamp(satU, 0, 255); satV = clamp(satV, 0, 255);
+      int u = map(satU, 0, 255, -15, 15);
+      int v = map(satV, 0, 255, -15, 15);
+      Wire.beginTransmission(I2C_ADDRESS);
+      Wire.write(0x49); // Set Saturation
+      Wire.write(0x02); // OP0=2
+      Wire.write((int8_t)u); // OP1: U
+      Wire.write((int8_t)v); // OP2: V
+      Wire.endTransmission();
+      pqChanged = true;
+    }
+    if (request->hasParam("sharpness")) {
+      sharpnessV = request->getParam("sharpness")->value().toInt();
+      int val = map(sharpnessV, 0, 255, 0, 8);
+      Wire.beginTransmission(I2C_ADDRESS);
+      Wire.write(0x4F); // Set Sharpness
+      Wire.write(0x01);
+      Wire.write((uint8_t)val);
+      Wire.endTransmission();
+      pqChanged = true;
+    }
+    if (pqChanged) {
+      saveSettings();
+    }
+    request->send(200, "text/plain", "PQ updated");
+  });
+
+  // 恢复出厂设置
+  server.on("/factory_reset", HTTP_GET, [](AsyncWebServerRequest *request) {
+    Wire.beginTransmission(I2C_ADDRESS);
+    Wire.write(0x08); // 恢复出厂设置
+    Wire.write(0x00);
+    Wire.endTransmission();
+    request->send(200, "text/plain", "Factory reset command sent.");
+  });
+
+  // 保存所有参数
+  server.on("/save_all", HTTP_GET, [](AsyncWebServerRequest *request) {
+    Wire.beginTransmission(I2C_ADDRESS);
+    Wire.write(0x07); // 保存所有参数
+    Wire.write(0x05); // OP0
+    Wire.write(0x00); // OP1
+    Wire.write(0x00); // OP2
+    Wire.write(0x01); // OP3:保存输出位置
+    Wire.write(0x01); // OP4:保存光轴/双相位
+    Wire.write(0x01); // OP5:保存画质信息
+    Wire.endTransmission();
+    request->send(200, "text/plain", "Save all command sent.");
+  });
+
+  // 获取设备信息（温度、运行时间、版本、序列号、批号）
+  server.on("/get_info", HTTP_GET, [](AsyncWebServerRequest *request) {
+    // 这里只发送指令，不处理 Notify 返回（如需处理需加 I2C 读/Notify 机制）
+    Wire.beginTransmission(I2C_ADDRESS);
+    Wire.write(0xA0); Wire.write(0x00); Wire.endTransmission(); // 温度
+    Wire.beginTransmission(I2C_ADDRESS);
+    Wire.write(0xA1); Wire.write(0x00); Wire.endTransmission(); // 运行时间
+    Wire.beginTransmission(I2C_ADDRESS);
+    Wire.write(0xA2); Wire.write(0x00); Wire.endTransmission(); // 版本
+    Wire.beginTransmission(I2C_ADDRESS);
+    Wire.write(0xB2); Wire.write(0x00); Wire.endTransmission(); // 批号
+    Wire.beginTransmission(I2C_ADDRESS);
+    Wire.write(0xB4); Wire.write(0x00); Wire.endTransmission(); // 序列号
+    request->send(200, "text/plain", "Info commands sent.");
+  });
+
+  // 获取温度信息
+  server.on("/get_temperature", HTTP_GET, [](AsyncWebServerRequest *request) {
+    Wire.beginTransmission(I2C_ADDRESS);
+    Wire.write(0xA0); // CMD
+    Wire.write(0x00); // OP0
+    Wire.endTransmission();
+
+    delay(10); // 等待设备响应
+
+    // 读取 Notify 返回数据（4字节：OP1, OP2, OP3, OP4）
+    Wire.requestFrom(I2C_ADDRESS, 4);
+    int result = -1, temp = -1, muteTh = -1, stopTh = -1;
+    if (Wire.available() >= 4) {
+      result = Wire.read();   // OP1
+      temp   = Wire.read();   // OP2
+      muteTh = Wire.read();   // OP3
+      stopTh = Wire.read();   // OP4
+    }
+    String json = "{\"result\":" + String(result) +
+                  ",\"temperature\":" + String(temp) +
+                  ",\"mute_threshold\":" + String(muteTh) +
+                  ",\"stop_threshold\":" + String(stopTh) + "}";
+    request->send(200, "application/json", json);
+  });
+
+  // 输出测试图案
+  server.on("/test_pattern", HTTP_GET, [](AsyncWebServerRequest *request) {
+    int pattern = request->hasParam("type") ? request->getParam("type")->value().toInt() : 0;
+    Wire.beginTransmission(I2C_ADDRESS);
+    Wire.write(0xA3); // 测试图案
+    Wire.write(0x11); // OP0
+    Wire.write((uint8_t)pattern); // OP1
+    Wire.write(0x00); // OP2
+    for (int i = 0; i < 15; ++i) Wire.write(0x00); // 填充剩余
+    Wire.endTransmission();
+    request->send(200, "text/plain", "Test pattern command sent.");
+  });
+
+  server.begin(); // Start the server
   Serial.println("HTTP Server started.");
 
   // Auto send Start Input after boot (as original behavior)
