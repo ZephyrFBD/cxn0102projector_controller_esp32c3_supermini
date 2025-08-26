@@ -65,14 +65,14 @@ Follow the detailed steps below to flash the binary files onto your ESP32-C3 dev
 - ✅ **Changed wiring layout**
 
 📸 **Screenshot:**  
-![ESP32 Flash Tool](v3.1/CXN0102v3.1.png)
+![ESP32 Flash Tool](figures/v3.1.png)
 
 ### **🔹 v3.0**
 - ✅ **Added:** Custom I2C Commands  
 - ✅ **Added:** WiFi Transmit Power Settings  
 
 📸 **Screenshot:**  
-![ESP32 Flash Tool](v3.0/CXN0102%20Controller%20v3.0%20(Author%20vx_samzhangxian)%20-%20Google%20Chrome%202_15_2025%2012_36_12%20PM.png)
+![ESP32 Flash Tool](figures/v3.0.png)
 
 ### **Previous Versions**
 - **v2.0, v2.2, v2.3** are available in the repository.  
