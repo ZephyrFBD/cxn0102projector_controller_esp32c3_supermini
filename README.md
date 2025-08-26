@@ -59,7 +59,7 @@ Follow the detailed steps below to flash the binary files onto your ESP32-C3 dev
 ### **🔹 v3.2 (Latest Release)**
 - ✅ **Added:** gpio2 button for shutdown
 
-### **🔹 v3.1 **
+### **🔹 v3.1**
 - ✅ **Added:** Chinese language support
 - ✅ **Changed wiring layout**
 
