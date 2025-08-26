@@ -56,10 +56,10 @@ Follow the detailed steps below to flash the binary files onto your ESP32-C3 dev
 - ✅ **Added:** Store user settings to **EEPROM**, so configurations persist across reboots.
 - ✅ **Improved:** Stability when saving multiple settings.
 
-### **🔹 v3.2 (Test)**
+### **🔹 v3.2 (Latest Release)**
 - ✅ **Added:** gpio2 button for shutdown
 
-### **🔹 v3.1 (Latest Release)**
+### **🔹 v3.1 **
 - ✅ **Added:** Chinese language support
 - ✅ **Changed wiring layout**
 
