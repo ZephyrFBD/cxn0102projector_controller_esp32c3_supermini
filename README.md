@@ -1,19 +1,9 @@
 # cxn0102projector_controller_esp32c3_supermini
- - 中文：[Readme_chinese.md](Readme_chinese.md)
- - connections（接线图和页面说明）：![click here](/v3.2/Esp32c3supermini驱动小宝光机接线图.pdf)
-> **🚀 Important Notice:**
-> recommend version: v3.2
-> The binary files provided in this project require a purchased license.  
-> If you have your own **ESP32-C3 SuperMini** development board, you can get a **50% discount**.(2.41$)  
-> The project **may be open-sourced soon**.
+- 中文：[Readme_chinese.md](Readme_chinese.md)
+- connections（接线图和页面说明）：![click here](/v3.2/Esp32c3supermini驱动小宝光机接线图.pdf)
 
-## 🛒 Purchase License
-
-- **Purchase Link:**  
-  👉 [Click here to purchase the license](https://m.tb.cn/h.6UebzQ8?tk=tanMeCCtX1U)
-  
-- **Contact:**  
-  📩 If you have any questions, please email: **`Zephyr142024@gmail.com`**
+> **🚀 Important Notice:**  
+> This project is **now fully open-source**! You can freely download, compile, and flash the firmware onto your ESP32-C3 SuperMini without a license.
 
 ---
 
@@ -32,7 +22,7 @@ Follow the detailed steps below to flash the binary files onto your ESP32-C3 dev
 
 ### 2️⃣ Obtain the Correct Binary File
 
-- Download the **.bin** file that matches your device from the available resources.
+- Download the **.bin** file that matches your device from the open-source resources in this repository.
 
 ### 3️⃣ Set Up the Flashing Tool
 
@@ -62,12 +52,16 @@ Follow the detailed steps below to flash the binary files onto your ESP32-C3 dev
 
 ## 🆕 Updates & Version History
 
+### **🔹 v3.3 (Latest Test)**
+- ✅ **Added:** Store user settings to **EEPROM**, so configurations persist across reboots.
+- ✅ **Improved:** Stability when saving multiple settings.
+
 ### **🔹 v3.2 (Test)**
-- ✅ **Added:** gpio2 button for shuttingdown
+- ✅ **Added:** gpio2 button for shutdown
 
 ### **🔹 v3.1 (Latest Release)**
-- ✅ **Added:** Chinese
-- ✅ **Added:** changed wiring layout!!!!
+- ✅ **Added:** Chinese language support
+- ✅ **Changed wiring layout**
 
 📸 **Screenshot:**  
 ![ESP32 Flash Tool](v3.1/CXN0102v3.1.png)
@@ -80,10 +74,10 @@ Follow the detailed steps below to flash the binary files onto your ESP32-C3 dev
 ![ESP32 Flash Tool](v3.0/CXN0102%20Controller%20v3.0%20(Author%20vx_samzhangxian)%20-%20Google%20Chrome%202_15_2025%2012_36_12%20PM.png)
 
 ### **Previous Versions**
-- **v2.0, v2.2, v2.3** are **not shown here**.  
-  📩 **Contact me if you need these versions!**
+- **v2.0, v2.2, v2.3** are available in the repository.  
+  📩 **Contact me if you need additional help!**
 
 ---
 
-📌 If you have any issues or need assistance, feel free to reach out via email.  
-🎉 **Happy flashing!**
+📌 This project is now **completely open-source**, so you can freely explore, modify, and contribute.  
+🎉 **Happy flashing and coding!**
