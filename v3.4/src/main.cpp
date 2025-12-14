@@ -426,7 +426,7 @@ String buildMainPageHtml() {
     // --- language pack ---
     var languages = {
       "en": {
-        "title": "CXN0102 Controller v3.3 (Author vx:samzhangxian)",
+        "title": "CXN0102 Controller v3.4 (Author vx:samzhangxian)",
         "h1": "CXN0102 Controller",
         "basicControls": "Basic Controls",
         "startInput": "Start Input",
