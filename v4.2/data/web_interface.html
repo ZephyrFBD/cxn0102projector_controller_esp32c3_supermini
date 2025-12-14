@@ -1,0 +1,1122 @@
+<!-- Created by Lyu on 2025/11/18.  -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'/>
+<meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'/>
+<title>CXN0102 Controller V4.2</title>
+<style>
+    body {
+      font-family: Arial, system-ui, -apple-system;
+      text-align: center;
+      background-color: #121212;
+      color: #ffffff;
+      margin: 0; padding: 0 8px 32px;
+    }
+    h1, h2, h3 { font-weight: 600; }
+    .button {
+      font-size: 1.0rem;
+      padding: 0.5rem 1rem;
+      margin: 0.25rem;
+      background-color: #333333;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .button:active { transform: translateY(1px); }
+    .grid { display: grid; gap: 8px; justify-content: center; grid-template-columns: repeat(2, 1fr); }
+    .slider-container { margin: 1rem auto; max-width: 520px; }
+    label { display: inline-block; margin: 0.25rem 0.5rem; }
+    input[type='range'] { width: 220px; vertical-align: middle; }
+    select {
+      background-color: #333333;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 8px;
+    }
+    #statusIndicator {
+      width: 14px; height: 14px; border-radius: 50%;
+      background-color: red; position: fixed; top: 10px; left: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    .topbar { position: fixed; top: 8px; right: 8px; }
+    .card { background:#1c1c1c; border-radius:10px; padding:12px; margin:10px auto; max-width:820px; }
+    .muted { opacity:.8; font-size:.9rem; }
+    .notify-panel {
+      background: #2a2a2a;
+      border-left: 4px solid #ff4444;
+      padding: 8px;
+      margin: 8px 0;
+      text-align: left;
+      border-radius: 4px;
+    }
+    .slider-value {
+      display: inline-block;
+      width: 40px;
+      text-align: center;
+      background: #333;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 8px;
+      font-size: 0.9em;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 8px 0;
+      padding: 4px 0;
+      gap: 10px;
+    }
+    .slider-label {
+      min-width: 100px;
+      text-align: left;
+      flex-shrink: 0;
+    }
+    .slider-control {
+      flex-grow: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .slider-control input[type='range'] {
+      flex-grow: 1;
+      min-width: 0;
+    }
+    .info-panel {
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 8px 0;
+      text-align: left;
+    }
+    .info-title {
+      font-weight: bold;
+      color: #4CAF50;
+      margin-bottom: 8px;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      z-index: 1000;
+    }
+    .modal-content {
+      position: relative;
+      width: 90%;
+      max-width: 400px;
+      margin: 50px auto;
+      background: #2a2a2a;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    .form-row {
+      margin: 10px 0;
+    }
+    .input {
+      width: 100%;
+      padding: 8px;
+      background: #333;
+      color: white;
+      border: 1px solid #555;
+      border-radius: 4px;
+    }
+    .wifi-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+    }
+    .wifi-table th, .wifi-table td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #444;
+    }
+    .wifi-table th {
+      background: #333;
+    }
+    .signal-bars {
+      font-family: monospace;
+      font-size: 1.2em;
+    }
+    .fan-button-active {
+      background-color: #4CAF50 !important;
+      border: 2px solid #45a049 !important;
+      box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+    }
+
+    .fan-button-inactive {
+      background-color: #333333 !important;
+      border: 2px solid #555555 !important;
+    }
+</style>
+</head>
+<body>
+<div id='statusBar' style='position: fixed; top: 40px; left: 0; width: 100%; background-color: #e64c4cff; color: white; text-align: center; padding: 10px; z-index: 1000; display: none;'></div>
+<div id='statusIndicator'></div>
+<div class='topbar'><select id='langSelect' onchange='onLangChange()'>
+  <option value='en'>English</option>
+  <option value='zh'>中文</option>
+</select></div>
+<h1 id='headerH1'>CXN0102 Controller</h1>
+<h2 id='headerH2'>V4.2</h2>
+
+<!-- Notify Panel -->
+<div class='card' id='notifyPanel' style='display:none;'>
+  <h3 id='notifyTitle'>System Notifications</h3>
+  <div id='notifyContent'></div>
+  <button class='button' onclick='clearNotifications()'>Clear</button>
+</div>
+
+<!-- Basic controls -->
+<div class='card'><h3 id='basicControlsHeader'>Basic Controls</h3>
+  <div class='grid'>
+    <button id='btnStartInput' class='button' onclick='sendCommand(1)'>Start Input</button>
+    <button id='btnStopInput' class='button' onclick='sendCommand(2)'>Stop Input</button>
+    <button id='btnReboot' class='button' onclick='sendCommand(3)'>Reboot</button>
+    <button id='btnShutdown' class='button' onclick='sendCommand(4)'>Shutdown</button>
+  </div>
+</div>
+
+<!-- Optical Axis -->
+<div class='card'><h3 id='opticalAxisHeader'>Optical Axis Adjustment</h3>
+  <div class='grid'>
+    <button id='btnOpticalEnter' class='button' onclick='sendCommand(5)'>Enter/Next</button>
+    <button id='btnOpticalPlus' class='button' onclick='sendCommand(6)'>+</button>
+    <button id='btnOpticalExit' class='button' onclick='sendCommand(9)'>Exit (Save)</button>
+    <button id='btnOpticalMinus' class='button' onclick='sendCommand(7)'>-</button>
+  </div>
+</div>
+
+<!-- Bi-Phase -->
+<div class='card'><h3 id='biPhaseHeader'>Bi-Phase Adjustment</h3>
+  <div class='grid'>
+    <button id='btnBiPhaseEnter' class='button' onclick='sendCommand(10)'>Enter/Next</button>
+    <button id='btnBiPhasePlus' class='button' onclick='sendCommand(11)'>+</button>
+    <button id='btnBiPhaseExit' class='button' onclick='sendCommand(14)'>Exit (Save)</button>
+    <button id='btnBiPhaseMinus' class='button' onclick='sendCommand(12)'>-</button>
+  </div>
+</div>
+
+<!-- Keystone + Flip -->
+<div class='card'><h3 id='keystoneHeader'>Keystone Adjustment</h3>
+  <div class='slider-container'>
+    <div class='slider-row'>
+      <span class='slider-label' id='labelHorizontal'>Horizontal:</span>
+      <div class='slider-control'>
+        <input type='range' min='-30' max='30' id='pan' oninput='updateSliderValue("panValue", this.value)'>
+        <span class='slider-value' id='panValue'>0</span>
+      </div>
+    </div>
+    <div class='slider-row'>
+      <span class='slider-label' id='labelVertical'>Vertical:</span>
+      <div class='slider-control'>
+        <input type='range' min='-20' max='20' id='tilt' oninput='updateSliderValue("tiltValue", this.value)'>
+        <span class='slider-value' id='tiltValue'>0</span>
+      </div>
+    </div>
+    <div style='text-align:center; margin:15px 0;'>
+      <label id='labelFlipMode'>Flip Mode: <select id='flip'>
+        <option id='optionFlipNone' value='0'>None</option>
+        <option id='optionFlipHorizontal' value='1'>Horizontal</option>
+        <option id='optionFlipVertical' value='2'>Vertical</option>
+        <option id='optionFlipBoth' value='3'>Both</option>
+      </select></label>
+    </div>
+    <button id='btnKeystoneApply' class='button' onclick='applyKeystone()'>Apply</button>
+  </div>
+</div>
+
+<!-- Picture Quality Adjustment -->
+<div class='card'><h3 id='pqHeader'>Picture Quality Adjustment</h3>
+  <div class='slider-container'>
+    <div class='slider-row'>
+      <span class='slider-label' id='labelBrightness'>Brightness:</span>
+      <div class='slider-control'>
+        <input type='range' min='0' max='255' id='brightness' oninput='updateSliderValue("brightnessValue", this.value)'>
+        <span class='slider-value' id='brightnessValue'>128</span>
+      </div>
+    </div>
+    <div class='slider-row'>
+      <span class='slider-label' id='labelContrast'>Contrast:</span>
+      <div class='slider-control'>
+        <input type='range' min='0' max='255' id='contrast' oninput='updateSliderValue("contrastValue", this.value)'>
+        <span class='slider-value' id='contrastValue'>128</span>
+      </div>
+    </div>
+    <div class='slider-row'>
+      <span class='slider-label' id='labelHueU'>Hue U:</span>
+      <div class='slider-control'>
+        <input type='range' min='0' max='255' id='hueU' oninput='updateSliderValue("hueUValue", this.value)'>
+        <span class='slider-value' id='hueUValue'>128</span>
+      </div>
+    </div>
+    <div class='slider-row'>
+      <span class='slider-label' id='labelHueV'>Hue V:</span>
+      <div class='slider-control'>
+        <input type='range' min='0' max='255' id='hueV' oninput='updateSliderValue("hueVValue", this.value)'>
+        <span class='slider-value' id='hueVValue'>128</span>
+      </div>
+    </div>
+    <div class='slider-row'>
+      <span class='slider-label' id='labelSaturationU'>Saturation U:</span>
+      <div class='slider-control'>
+        <input type='range' min='0' max='255' id='satU' oninput='updateSliderValue("satUValue", this.value)'>
+        <span class='slider-value' id='satUValue'>128</span>
+      </div>
+    </div>
+    <div class='slider-row'>
+      <span class='slider-label' id='labelSaturationV'>Saturation V:</span>
+      <div class='slider-control'>
+        <input type='range' min='0' max='255' id='satV' oninput='updateSliderValue("satVValue", this.value)'>
+        <span class='slider-value' id='satVValue'>128</span>
+      </div>
+    </div>
+    <div class='slider-row'>
+      <span class='slider-label' id='labelSharpness'>Sharpness:</span>
+      <div class='slider-control'>
+        <input type='range' min='0' max='255' id='sharpness' oninput='updateSliderValue("sharpnessValue", this.value)'>
+        <span class='slider-value' id='sharpnessValue'>128</span>
+      </div>
+    </div>
+    <button id='btnPQApply' class='button' onclick='applyPQ()'>Apply</button>
+  </div>
+</div>
+
+<!-- Test Pattern -->
+<div class='card'><h3 id='testPatternHeader'>Test Pattern</h3>
+  <div class='grid'>
+    <button id='btnTestColorBar' class='button' onclick='sendTestPattern(1)'>Color Bar</button>
+    <button id='btnTestCrossHatch' class='button' onclick='sendTestPattern(2)'>Cross Hatch</button>
+    <button id='btnTestRaster' class='button' onclick='sendTestPattern(3)'>Raster</button>
+    <button id='btnTestRamp' class='button' onclick='sendTestPattern(4)'>Ramp</button>
+    <button id='btnTestCircle' class='button' onclick='sendTestPattern(5)'>Circle</button>
+    <button id='btnTestCross' class='button' onclick='sendTestPattern(6)'>Cross</button>
+    <button id='btnTestCircleCross' class='button' onclick='sendTestPattern(7)'>Circle + Cross</button>
+    <button id='btnTestCircleFilled' class='button' onclick='sendTestPattern(8)'>Circle (Filled)</button>
+    <button id='btnTestSquareFilled' class='button' onclick='sendTestPattern(9)'>Square (Filled)</button>
+    <button id='btnTestCheckerboard' class='button' onclick='sendTestPattern(10)'>Checkerboard</button>
+    <button id='btnTestResVertical' class='button' onclick='sendTestPattern(11)'>Resolution Vertical</button>
+    <button id='btnTestResHorizontal' class='button' onclick='sendTestPattern(12)'>Resolution Horizontal</button>
+    <button id='btnTestResSquare' class='button' onclick='sendTestPattern(13)'>Resolution Square</button>
+    <button id='btnTestColorRampSpecial' class='button' onclick='sendTestPattern(14)'>Color Bar Ramp Special</button>
+    <button id='btnTestRectHatchEven' class='button' onclick='sendTestPattern(15)'>Rectangular Hatch Even</button>
+    <button id='btnTestRectHatchEqual' class='button' onclick='sendTestPattern(16)'>Rectangular Hatch Equal</button>
+  </div>
+  <div style='text-align:center; margin-top:10px;'>
+    <button id='btnTestStop' class='button' onclick='sendTestPattern(0)'>Stop Test Pattern</button>
+  </div>
+</div>
+
+<!-- Custom I2C -->
+<div class='card'><h3 id='customI2CHeader'>Custom I2C Command</h3>
+  <div class='muted' id='customI2CExample'></div>
+  <input type='text' id='customCmd' placeholder='Enter hex command'/> 
+  <button id='btnSendCustom' class='button' onclick='sendCustomCommand()'>Send</button>
+  <div class='muted' id='customHint'></div>
+</div>
+
+<!-- Fan PWM Control -->
+<div class='card'><h3 id='fanHeader'>Fan Speed Control</h3>
+  <div class='slider-container'>
+
+    <div class='slider-row' style='justify-content:center; margin-bottom:15px;'>
+      <button id='btnFanSilent' class='button' onclick='setFanMode(0)' style='margin:0 5px;'>Silent</button>
+      <button id='btnFanNormal' class='button' onclick='setFanMode(1)' style='margin:0 5px;'>Normal</button>
+      <button id='btnFanAggressive' class='button' onclick='setFanMode(2)' style='margin:0 5px;'>Aggressive</button>
+      <button id='btnFanAuto' class='button' onclick='setFanMode(3)' style='margin:0 5px;'>Auto</button>
+
+    </div>
+  </div>
+</div>
+
+<!-- WiFi TX Power -->
+<div class='card'><h3 id='wifiTxHeader'>WiFi Transmit Power</h3>
+  <label id='labelSelectPower' for='txPower'>Select Power (dBm):</label> 
+  <select id='txPower'>
+    <option id='option78' value='78'>19.5 dBm (≈90mW)</option>
+    <option id='option76' value='76'>19 dBm (≈79mW)</option>
+    <option id='option74' value='74'>18.5 dBm (≈71mW)</option>
+    <option id='option68' value='68'>17 dBm (≈50mW)</option>
+    <option id='option60' value='60'>15 dBm (≈32mW)</option>
+    <option id='option52' value='52'>13 dBm (≈20mW)</option>
+    <option id='option44' value='44'>11 dBm (≈12mW)</option>
+    <option id='option34' value='34'>8.5 dBm (≈7mW)</option>
+    <option id='option28' value='28'>7 dBm (≈5mW)</option>
+    <option id='option20' value='20'>5 dBm (≈3mW)</option>
+    <option id='option8' value='8'>2 dBm (≈1.6mW)</option>
+    <option id='optionMinus4' value='-4'>-1 dBm (≈0.8mW)</option>
+  </select> 
+  <button id='btnTxApply' class='button' onclick='applyTx()'>Apply</button>
+</div>
+
+<!-- WiFi Management -->
+<div class='card'><h3 id='wifiHeader'>WiFi Management</h3>
+  <div id='wifiStatus' class='info-panel'>
+    <div style='display:flex; align-items:center; margin-bottom:10px;'>
+      <div id='wifiStatusIcon' style='width:12px; height:12px; border-radius:50%; background:#ff4444; margin-right:8px;'></div>
+      <span id='wifiStatusText'>Checking status...</span>
+    </div>
+    <div id='wifiDetails' style='font-size:0.9em; opacity:0.8;'></div>
+  </div>
+  <select id='ssidSelect' class='input' style='width:100%; margin-bottom:10px; box-sizing:border-box;'></select>
+  <input type='password' id='wifiPassword' class='input' placeholder='Password' style='width:100%; box-sizing:border-box;' />
+  <div class='muted' style='font-size:0.85em; margin-top:10px;'>
+    Save credentials first, then switch to STA mode to connect.
+  </div>
+  <div class='muted' id='lastScanTime' style='font-size:0.8em; margin-top:5px;'></div>
+  <div style='display:flex; width:100%; gap:8px; margin-bottom:15px;'>
+    <button id='btnScanWiFi' class='button' onclick='scanWiFi()' style='flex:1;'>Refresh Networks</button>
+    <button id='btnSaveCredentials' class='button' onclick='saveCredentials()' style='flex:1; background:#4CAF50;'>Save Credentials</button>
+  </div>
+  <div style='margin:20px 0 5px 0;'>
+    <button id='btnSwitchToSTA' class='button' onclick='switchToSTA()' style='background:#4CAF50; display:none; width:100%;'>Switch to STA Mode (Reboot)</button>
+    <button id='btnSwitchToAP' class='button' onclick='switchToAP()' style='background:#ff9800; display:none; width:100%;'>Switch to AP Mode</button>
+  </div>
+</div>
+
+<!-- System Settings -->
+<div class='card'>    
+  <h3 id='systemHeader'>System Settings</h3>
+  <div class='grid'>
+    <button id='btnFactoryReset' class='button' onclick='factoryReset()'>Factory Reset</button>
+    <button id='btnSaveAll' class='button' onclick='saveAllParams()'>Save All Parameters</button>
+    <button id='btnClearEEPROM' class='button' onclick='clearEEPROM()'>Clear EEPROM</button>
+    <button id='btnRefreshInfo' class='button' onclick='refreshDeviceInfo()'>Refresh All Info</button>
+  </div>
+  <div class='info-panel'>
+    <div><span id='temperatureLabel'>Temperature:</span> <span id='temperatureValue'>--</span> °C</div>
+    <div><span id='muteThresholdLabel'>Mute Threshold:</span> <span id='muteThresholdValue'>--</span> °C</div>
+    <div><span id='stopThresholdLabel'>Stop Threshold:</span> <span id='stopThresholdValue'>--</span> °C</div>
+    <div><span id='runtimeLabel'>Runtime:</span> <span id='runtimeValue'>--</span></div>
+    <div><span id='firmwareLabel'>Firmware:</span> <span id='firmwareValue'>--</span></div>
+    <div><span id='parameterLabel'>Parameter:</span> <span id='parameterValue'>--</span></div>
+    <div><span id='dataLabel'>Data:</span> <span id='dataValue'>--</span></div>
+    <div style='display:none'><span id='lotLabel'>LOT Number:</span> <span id='lotValue'>--</span></div>
+    <div><span id='serialLabel'>Serial Number:</span> <span id='serialValue'>--</span></div>
+  </div>
+</div>
+
+<script>
+    let notifications = [];
+    let currentSelectedSSID = '';
+  
+    // --- Slider value display ---
+    function updateSliderValue(elementId, value) {
+      document.getElementById(elementId).textContent = value;
+    }
+  
+    // --- connection indicator ---
+    function checkConnection() {
+      fetch('/ping').then(r => {
+        document.getElementById('statusIndicator').style.backgroundColor = r.ok ? 'green' : 'red';
+      }).catch(()=>{document.getElementById('statusIndicator').style.backgroundColor='red';});
+    }
+    setInterval(checkConnection, 1000);
+   
+    // --- commands ---
+    function sendCommand(cmd) {
+      fetch(`/command?cmd=${cmd}`).then(r=>r.text()).then(console.log);
+    }
+   
+    // --- custom I2C ---
+    function sendCustomCommand() {
+      const cmd = document.getElementById('customCmd').value.trim();
+      if (!cmd) { showStatus('Please enter a command!'); return; }
+      fetch(`/custom_command?cmd=${cmd}`).then(resp => resp.text()).then(t => showStatus(t));
+    }
+   
+    // --- test pattern ---
+    function sendTestPattern(pattern) {
+      fetch(`/test_pattern?pattern=${pattern}`).then(r=>r.text()).then(t => showStatus(t));
+    }
+   
+    // --- keystone ---
+    async function applyKeystone() {
+      const pan = document.getElementById('pan').value;
+      const tilt = document.getElementById('tilt').value;
+      const flip = document.getElementById('flip').value;
+      // 发送动作 + 持久化
+      await fetch(`/keystone?pan=${pan}&tilt=${tilt}&flip=${flip}`);
+      await fetch(`/set_settings?pan=${pan}&tilt=${tilt}&flip=${flip}`);
+      showStatus('Keystone applied.');
+    }
+   
+    // --- tx power ---
+    async function applyTx() {
+      const power = document.getElementById('txPower').value;
+      await fetch(`/set_tx_power?power=${power}`); // 应用
+      await fetch(`/set_settings?txPower=${power}`); // 持久化
+      showStatus('Transmit Power applied.');
+    }
+   
+    // --- picture quality ---
+    async function applyPQ() {
+      const b = document.getElementById('brightness').value;
+      const c = document.getElementById('contrast').value;
+      const hueU = document.getElementById('hueU').value;
+      const hueV = document.getElementById('hueV').value;
+      const satU = document.getElementById('satU').value;
+      const satV = document.getElementById('satV').value;
+      const sh = document.getElementById('sharpness').value;
+      await fetch(`/set_pq?brightness=${b}&contrast=${c}&hueU=${hueU}&hueV=${hueV}&satU=${satU}&satV=${satV}&sharpness=${sh}`);
+      showStatus('Picture Quality updated.');
+    }
+   
+    // --- device info refresh ---
+    async function refreshDeviceInfo() {
+      try {
+        const r = await fetch('/get_device_info');
+        const info = await r.json();
+        updateDeviceInfoDisplay(info);
+      } catch(e) {
+        console.error('Failed to refresh device info:', e);
+      }
+    }
+    function updateDeviceInfoDisplay(info) {
+      if (info.temperature) {
+        document.getElementById('temperatureValue').innerText = info.temperature.current;
+        document.getElementById('muteThresholdValue').innerText = info.temperature.lower;
+        document.getElementById('stopThresholdValue').innerText = info.temperature.upper;
+      }
+      if (info.runtime) {
+        const hours = Math.floor(info.runtime / 3600);
+        const minutes = Math.floor((info.runtime % 3600) / 60);
+        const seconds = info.runtime % 60;
+        document.getElementById('runtimeValue').innerText = `${hours}h ${minutes}m ${seconds}s`;
+      }
+      if (info.version) {
+        document.getElementById('firmwareValue').innerText = info.version.firmware;
+        document.getElementById('parameterValue').innerText = info.version.parameter;
+        document.getElementById('dataValue').innerText = info.version.data;
+      }
+      if (info.lot_number) {
+        document.getElementById('lotValue').innerText = info.lot_number;
+      }
+      if (info.serial_number) {
+        document.getElementById('serialValue').innerText = info.serial_number;
+      }
+    }
+   
+    // --- notifications ---
+    function addNotification(msg) {
+      notifications.push(msg);
+      updateNotifyPanel();
+    }
+    function updateNotifyPanel() {
+      const panel = document.getElementById('notifyPanel');
+      const content = document.getElementById('notifyContent');
+      if (notifications.length > 0) {
+        content.innerHTML = notifications.map(n => `<div class="notify-panel">${n}</div>`).join('');
+        panel.style.display = 'block';
+      } else {
+        panel.style.display = 'none';
+      }
+    }
+    function clearNotifications() {
+      notifications = [];
+      updateNotifyPanel();
+    }
+   
+    // --- language support ---
+    const languages = {
+      en: {
+        title: "CXN0102 Controller V4.2 By Lyu",
+        h1: "CXN0102 Controller",
+        // deviceInfoHeader: "Device Information",
+        temperatureLabel: "Temperature:",
+        muteThresholdLabel: "Mute Threshold:",
+        stopThresholdLabel: "Stop Threshold:",
+        runtimeLabel: "Runtime:",
+        firmwareLabel: "Firmware:",
+        parameterLabel: "Parameter:",
+        dataLabel: "Data:",
+        lotLabel: "LOT Number:",
+        serialLabel: "Serial Number:",
+        refreshInfo: "Refresh All Info",
+        basicControls: "Basic Controls",
+        startInput: "Start Input",
+        stopInput: "Stop Input",
+        reboot: "Reboot",
+        shutdown: "Shutdown",
+        opticalAxisAdjustment: "Optical Axis Adjustment",
+        enter: "Enter/Next",
+        exitSave: "Exit (Save)",
+        biPhaseAdjustment: "Bi-Phase Adjustment",
+        keystoneAdjustment: "Keystone Adjustment",
+        horizontal: "Horizontal:",
+        vertical: "Vertical:",
+        flipMode: "Flip Mode:",
+        none: "None",
+        horizontalOption: "Horizontal",
+        verticalOption: "Vertical",
+        both: "Both",
+        apply: "Apply",
+        pqAdjustment: "Picture Quality Adjustment",
+        brightness: "Brightness:",
+        contrast: "Contrast:",
+        hueU: "Hue U:",
+        hueV: "Hue V:",
+        saturationU: "Saturation U:",
+        saturationV: "Saturation V:",
+        sharpness: "Sharpness:",
+        testPattern: "Test Pattern",
+        testStop: "Stop Test Pattern",
+        testColorBar: "Color Bar",
+        testCrossHatch: "Cross Hatch",
+        testRaster: "Raster",
+        testRamp: "Ramp",
+        testCircle: "Circle",
+        testCross: "Cross",
+        testCircleCross: "Circle + Cross",
+        testCircleFilled: "Circle (Filled)",
+        testSquareFilled: "Square (Filled)",
+        testCheckerboard: "Checkerboard",
+        testResVertical: "Resolution Vertical",
+        testResHorizontal: "Resolution Horizontal",
+        testResSquare: "Resolution Square",
+        testColorRampSpecial: "Color Bar Ramp Special",
+        testRectHatchEven: "Rectangular Hatch Even",
+        testRectHatchEqual: "Rectangular Hatch Equal",
+        customI2C: "Custom I2C Command",
+        customI2CExample: "(e.g.: 0b0100 for shutdown)",
+        enterHexCmd: "Enter hex command",
+        send: "Send",
+        wifiTransmitPower: "WiFi Transmit Power",
+        selectPower: "Select Power (dBm):",
+        option78: "19.5 dBm (≈90mW)",
+        option76: "19 dBm (≈79mW)",
+        option74: "18.5 dBm (≈71mW)",
+        option68: "17 dBm (≈50mW)",
+        option60: "15 dBm (≈32mW)",
+        option52: "13 dBm (≈20mW)",
+        option44: "11 dBm (≈12mW)",
+        option34: "8.5 dBm (≈7mW)",
+        option28: "7 dBm (≈5mW)",
+        option20: "5 dBm (≈3mW)",
+        option8: "2 dBm (≈1.6mW)",
+        optionMinus4: "-1 dBm (≈0.8mW)",
+        system: "System Info",
+        factoryReset: "Factory Reset",
+        saveAll: "Save All Parameters",
+        clearEEPROM: "Clear EEPROM",
+        wifiManagement: "WiFi Management",
+        refreshNetworks: "Refresh Networks",
+        saveCredentials: "Save Credentials",
+        switchToSTA: "Switch to STA Mode (Reboot)",
+        switchToAP: "Switch to AP Mode",
+        fanHeader: "Fan Speed Control",
+        Silent: "Silent",
+        Normal: "Normal",
+        Aggressive: "Aggressive",
+        Auto: "Auto"
+      },
+      zh: {
+        title: "CXN0102 控制器 V4.2 By Lyu",
+        h1: "CXN0102 控制器",
+        // deviceInfoHeader: "设备信息",
+        temperatureLabel: "温度:",
+        muteThresholdLabel: "静音阈值:",
+        stopThresholdLabel: "停止阈值:",
+        runtimeLabel: "运行时间:",
+        firmwareLabel: "固件:",
+        parameterLabel: "参数:",
+        dataLabel: "数据:",
+        lotLabel: "批次号:",
+        serialLabel: "序列号:",
+        refreshInfo: "刷新所有信息",
+        basicControls: "基本控制",
+        startInput: "开始输入",
+        stopInput: "停止输入",
+        reboot: "重启",
+        shutdown: "关机",
+        opticalAxisAdjustment: "光轴调整",
+        enter: "进入/切换下一项",
+        exitSave: "退出（保存）",
+        biPhaseAdjustment: "双相位调整",
+        keystoneAdjustment: "梯形校正",
+        horizontal: "水平:",
+        vertical: "垂直:",
+        flipMode: "翻转模式:",
+        none: "无",
+        horizontalOption: "水平",
+        verticalOption: "垂直",
+        both: "双向",
+        apply: "应用",
+        pqAdjustment: "画质调整",
+        brightness: "亮度:",
+        contrast: "对比度:",
+        hueU: "色调U:",
+        hueV: "色调V:",
+        saturationU: "饱和度U:",
+        saturationV: "饱和度V:",
+        sharpness: "锐度:",
+        testPattern: "测试图案",
+        testStop: "停止测试图案",
+        testColorBar: "彩条",
+        testCrossHatch: "十字网格",
+        testRaster: "光栅",
+        testRamp: "渐变",
+        testCircle: "圆",
+        testCross: "十字",
+        testCircleCross: "圆 + 十字",
+        testCircleFilled: "圆 (填充)",
+        testSquareFilled: "正方形 (填充)",
+        testCheckerboard: "棋盘格",
+        testResVertical: "分辨率检查 (垂直线)",
+        testResHorizontal: "分辨率检查 (水平线)",
+        testResSquare: "分辨率检查 (正方形)",
+        testColorRampSpecial: "彩条渐变特殊",
+        testRectHatchEven: "矩形网格 均匀",
+        testRectHatchEqual: "矩形网格 等间距",
+        customI2C: "自定义 I2C 命令",
+        customI2CExample: "（例如：0b0100 关机）",
+        enterHexCmd: "输入十六进制命令",
+        send: "发送",
+        wifiTransmitPower: "WiFi 发射功率",
+        selectPower: "选择功率 (dBm):",
+        option78: "19.5 dBm (约90毫瓦)",
+        option76: "19 dBm (约79毫瓦)",
+        option74: "18.5 dBm (约71毫瓦)",
+        option68: "17 dBm (约50毫瓦)",
+        option60: "15 dBm (约32毫瓦)",
+        option52: "13 dBm (约20毫瓦)",
+        option44: "11 dBm (约12毫瓦)",
+        option34: "8.5 dBm (约7毫瓦)",
+        option28: "7 dBm (约5毫瓦)",
+        option20: "5 dBm (约3毫瓦)",
+        option8: "2 dBm (约1.6毫瓦)",
+        optionMinus4: "-1 dBm (约0.8毫瓦)",
+        system: "系统信息",
+        factoryReset: "恢复出厂设置",
+        saveAll: "保存所有参数",
+        clearEEPROM: "清空EEPROM",
+        wifiManagement: "网络管理",
+        refreshNetworks: "刷新网络",
+        saveCredentials: "保存凭证",
+        switchToSTA: "切换到STA模式（重启）",
+        switchToAP: "切换到AP模式",
+        fanHeader: "风扇速度控制",
+        Silent: "静音",
+        Normal: "正常",
+        Aggressive: "激进",
+        Auto: "自动"
+      }
+    };
+   
+    function switchLanguage() {
+      var lang = document.getElementById('langSelect').value;
+      var dict = languages[lang];
+      document.title = dict.title;
+      document.getElementById('headerH1').innerText = dict.h1;
+      // document.getElementById('deviceInfoHeader').innerText = dict.deviceInfoHeader;
+      document.getElementById('temperatureLabel').innerText = dict.temperatureLabel;
+      document.getElementById('muteThresholdLabel').innerText = dict.muteThresholdLabel;
+      document.getElementById('stopThresholdLabel').innerText = dict.stopThresholdLabel;
+      document.getElementById('runtimeLabel').innerText = dict.runtimeLabel;
+      document.getElementById('firmwareLabel').innerText = dict.firmwareLabel;
+      document.getElementById('parameterLabel').innerText = dict.parameterLabel;
+      document.getElementById('dataLabel').innerText = dict.dataLabel;
+      document.getElementById('lotLabel').innerText = dict.lotLabel;
+      document.getElementById('serialLabel').innerText = dict.serialLabel;
+      document.getElementById('btnRefreshInfo').innerText = dict.refreshInfo;
+      document.getElementById('basicControlsHeader').innerText = dict.basicControls;
+      document.getElementById('btnStartInput').innerText = dict.startInput;
+      document.getElementById('btnStopInput').innerText = dict.stopInput;
+      document.getElementById('btnReboot').innerText = dict.reboot;
+      document.getElementById('btnShutdown').innerText = dict.shutdown;
+      document.getElementById('opticalAxisHeader').innerText = dict.opticalAxisAdjustment;
+      document.getElementById('btnOpticalEnter').innerText = dict.enter;
+      document.getElementById('btnOpticalExit').innerText = dict.exitSave;
+      document.getElementById('biPhaseHeader').innerText = dict.biPhaseAdjustment;
+      document.getElementById('btnBiPhaseEnter').innerText = dict.enter;
+      document.getElementById('btnBiPhaseExit').innerText = dict.exitSave;
+      document.getElementById('keystoneHeader').innerText = dict.keystoneAdjustment;
+      document.getElementById('labelHorizontal').innerText = dict.horizontal;
+      document.getElementById('labelVertical').innerText = dict.vertical;
+      document.getElementById('labelFlipMode').childNodes[0].nodeValue = dict.flipMode + " ";
+      document.getElementById('optionFlipNone').innerText = dict.none;
+      document.getElementById('optionFlipHorizontal').innerText = dict.horizontalOption;
+      document.getElementById('optionFlipVertical').innerText = dict.verticalOption;
+      document.getElementById('optionFlipBoth').innerText = dict.both;
+      document.getElementById('btnKeystoneApply').innerText = dict.apply;
+      document.getElementById('pqHeader').innerText = dict.pqAdjustment;
+      document.getElementById('labelBrightness').innerText = dict.brightness;
+      document.getElementById('labelContrast').innerText = dict.contrast;
+      document.getElementById('labelHueU').innerText = dict.hueU;
+      document.getElementById('labelHueV').innerText = dict.hueV;
+      document.getElementById('labelSaturationU').innerText = dict.saturationU;
+      document.getElementById('labelSaturationV').innerText = dict.saturationV;
+      document.getElementById('labelSharpness').innerText = dict.sharpness;
+      document.getElementById('btnPQApply').innerText = dict.apply;
+      document.getElementById('testPatternHeader').innerText = dict.testPattern;
+      document.getElementById('btnTestStop').innerText = dict.testStop;
+      document.getElementById('btnTestColorBar').innerText = dict.testColorBar;
+      document.getElementById('btnTestCrossHatch').innerText = dict.testCrossHatch;
+      document.getElementById('btnTestRaster').innerText = dict.testRaster;
+      document.getElementById('btnTestRamp').innerText = dict.testRamp;
+      document.getElementById('btnTestCircle').innerText = dict.testCircle;
+      document.getElementById('btnTestCross').innerText = dict.testCross;
+      document.getElementById('btnTestCircleCross').innerText = dict.testCircleCross;
+      document.getElementById('btnTestCircleFilled').innerText = dict.testCircleFilled;
+      document.getElementById('btnTestSquareFilled').innerText = dict.testSquareFilled;
+      document.getElementById('btnTestCheckerboard').innerText = dict.testCheckerboard;
+      document.getElementById('btnTestResVertical').innerText = dict.testResVertical;
+      document.getElementById('btnTestResHorizontal').innerText = dict.testResHorizontal;
+      document.getElementById('btnTestResSquare').innerText = dict.testResSquare;
+      document.getElementById('btnTestColorRampSpecial').innerText = dict.testColorRampSpecial;
+      document.getElementById('btnTestRectHatchEven').innerText = dict.testRectHatchEven;
+      document.getElementById('btnTestRectHatchEqual').innerText = dict.testRectHatchEqual;
+      document.getElementById('customI2CHeader').innerText = dict.customI2C;
+      document.getElementById('customI2CExample').innerText = dict.customI2CExample;
+      document.getElementById('customCmd').placeholder = dict.enterHexCmd;
+      document.getElementById('btnSendCustom').innerText = dict.send;
+      document.getElementById('wifiTxHeader').innerText = dict.wifiTransmitPower;
+      document.getElementById('labelSelectPower').innerText = dict.selectPower;
+      document.getElementById('option78').innerText = dict.option78;
+      document.getElementById('option76').innerText = dict.option76;
+      document.getElementById('option74').innerText = dict.option74;
+      document.getElementById('option68').innerText = dict.option68;
+      document.getElementById('option60').innerText = dict.option60;
+      document.getElementById('option52').innerText = dict.option52;
+      document.getElementById('option44').innerText = dict.option44;
+      document.getElementById('option34').innerText = dict.option34;
+      document.getElementById('option28').innerText = dict.option28;
+      document.getElementById('option20').innerText = dict.option20;
+      document.getElementById('option8').innerText = dict.option8;
+      document.getElementById('optionMinus4').innerText = dict.optionMinus4;
+      document.getElementById('btnTxApply').innerText = dict.apply;
+      document.getElementById('systemHeader').innerText = dict.system;
+      document.getElementById('btnFactoryReset').innerText = dict.factoryReset;
+      document.getElementById('btnSaveAll').innerText = dict.saveAll;
+      document.getElementById('btnClearEEPROM').innerText = dict.clearEEPROM;
+      document.getElementById('wifiHeader').innerText = dict.wifiManagement;
+      document.getElementById('btnScanWiFi').innerText = dict.refreshNetworks;
+      document.getElementById('btnSwitchToSTA').innerText = dict.switchToSTA;
+      document.getElementById('btnSwitchToAP').innerText = dict.switchToAP;
+      // 保存凭证按钮
+      document.getElementById('btnSaveCredentials').innerText = dict.saveCredentials;
+      // Fan speed buttons
+      document.getElementById('fanHeader').innerText = dict.fanHeader;
+      document.getElementById('btnFanSilent').innerText = dict.Silent;
+      document.getElementById('btnFanNormal').innerText = dict.Normal;
+      document.getElementById('btnFanAggressive').innerText = dict.Aggressive;
+      document.getElementById('btnFanAuto').innerText = dict.Auto;
+    }
+   
+    async function onLangChange() {
+      const lang = document.getElementById('langSelect').value;
+      await fetch(`/set_lang?lang=${lang}`);
+      switchLanguage();
+    }
+   
+    async function loadSettings() {
+      try {
+        const r = await fetch('/get_settings');
+        const s = await r.json();
+        document.getElementById('pan').value = s.pan;
+        document.getElementById('tilt').value = s.tilt;
+        document.getElementById('flip').value = s.flip;
+        document.getElementById('txPower').value = s.txPower;
+        document.getElementById('langSelect').value = s.lang;
+        document.getElementById('brightness').value = s.brightness;
+        document.getElementById('contrast').value = s.contrast;
+        document.getElementById('hueU').value = s.hueU ?? s.hue; // 兼容旧数据
+        document.getElementById('hueV').value = s.hueV ?? s.hue;
+        document.getElementById('satU').value = s.satU ?? s.saturation;
+        document.getElementById('satV').value = s.satV ?? s.saturation;
+        document.getElementById('sharpness').value = s.sharpness;
+      
+        // 更新滑块数值显示
+        updateSliderValue('panValue', s.pan);
+        updateSliderValue('tiltValue', s.tilt);
+        updateSliderValue('brightnessValue', s.brightness);
+        updateSliderValue('contrastValue', s.contrast);
+        updateSliderValue('hueUValue', s.hueU ?? s.hue);
+        updateSliderValue('hueVValue', s.hueV ?? s.hue);
+        updateSliderValue('satUValue', s.satU ?? s.saturation);
+        updateSliderValue('satVValue', s.satV ?? s.saturation);
+        updateSliderValue('sharpnessValue', s.sharpness);
+        // 新增：加载风扇模式并更新UI
+        if (s.fanMode !== undefined) {
+          console.log('Loaded fan mode from settings:', s.fanMode);
+          updateFanButtonState(s.fanMode);
+        }
+        switchLanguage();
+      } catch(e) {
+        console.error(e);
+      }
+    }
+
+    // 更新风扇按钮选中状态
+    function updateFanButtonState(activeMode) {
+      const buttons = [
+        { id: 'btnFanSilent', mode: 0 },
+        { id: 'btnFanNormal', mode: 1 },
+        { id: 'btnFanAggressive', mode: 2 },
+        { id: 'btnFanAuto', mode: 3 }
+      ];
+      
+      buttons.forEach(button => {
+        const btn = document.getElementById(button.id);
+        if (btn) {
+          if (button.mode === activeMode) {
+            btn.style.backgroundColor = '#4CAF50'; // 选中状态 - 绿色
+            btn.style.border = '2px solid #45a049';
+          } else {
+            btn.style.backgroundColor = '#333333'; // 默认状态
+            btn.style.border = '2px solid #555555';
+          }
+        }
+      });
+      
+      // 在控制台显示当前模式（调试用）
+      console.log('Fan mode updated to:', activeMode);
+    }
+
+    // 修改 setFanMode 函数，设置模式后更新UI
+    function setFanMode(mode) {
+      fetch(`/set_fan?mode=${mode}`)
+        .then(r => r.text())
+        .then(t => {
+            console.log("Fan mode set to:", mode);
+            showStatus(`Fan mode set to: ${mode}`);
+            updateFanButtonState(mode); // 更新按钮状态
+        })
+        .catch(error => {
+            console.error('Failed to set fan mode:', error);
+            showStatus('Failed to set fan mode');
+        });
+    }
+
+    // 可选：更新按钮选中状态
+    function updateFanButtonState(activeMode) {
+      const buttons = ['btnFanSilent', 'btnFanNormal', 'btnFanAggressive', 'btnFanAuto'];
+      buttons.forEach((btnId, index) => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+          if (index === activeMode) {
+            btn.style.backgroundColor = '#4CAF50'; // 选中状态
+          } else {
+            btn.style.backgroundColor = '#333333'; // 默认状态
+          }
+        }
+      });
+    }
+
+   
+    // --- factory reset ---
+    function factoryReset() {
+      fetch("/factory_reset").then(r=>r.text()).then(text => showStatus(text));
+    }
+   
+    // --- save all params ---
+    function saveAllParams() {
+      fetch("/save_all").then(r=>r.text()).then(text => showStatus(text));
+    }
+   
+    // --- clear EEPROM ---
+    function clearEEPROM() {
+      fetch("/clear_eeprom").then(r=>r.text()).then(text => showStatus(text));
+    }
+   
+    // --- show status ---
+    function showStatus(message, duration = 3000) {
+      const statusBar = document.getElementById('statusBar');
+      statusBar.innerHTML = message.replace(/\n/g, '<br>');
+      statusBar.style.display = 'block';
+      setTimeout(() => { statusBar.style.display = 'none'; }, duration);
+    }
+   
+    // --- auto refresh device info ---
+    async function autoRefreshDeviceInfo() {
+      try {
+        const r = await fetch('/get_device_info');
+        const info = await r.json();
+        updateDeviceInfoDisplay(info);
+      } catch(e) {
+        console.error('Failed to auto-refresh device info:', e);
+      }
+    }
+   
+    // ==================== WiFi Management Functions ====================
+    async function updateWiFiStatus() {
+      try {
+        const response = await fetch('/wifi_status');
+        const status = await response.json();
+      
+        const statusIcon = document.getElementById('wifiStatusIcon');
+        const statusText = document.getElementById('wifiStatusText');
+        const details = document.getElementById('wifiDetails');
+
+        // 切换按钮 —— 保持引用不变（按钮现在只是位置变化）
+        const btnSwitchToSTA = document.getElementById('btnSwitchToSTA');
+        const btnSwitchToAP = document.getElementById('btnSwitchToAP');
+      
+        let statusMsg = '';
+        let statusColor = '#ff4444';
+        let detailsHtml = '';
+      
+        if (status.mode === 'sta') {
+          // STA 模式下显示切换到 AP
+          btnSwitchToSTA.style.display = 'none';
+          btnSwitchToAP.style.display = 'block';
+
+          if (status.connected) {
+            statusMsg = 'Connected to WiFi';
+            statusColor = '#4CAF50';
+            detailsHtml = `
+              <div><strong>Network:</strong> ${status.ssid || 'Unknown'}</div>
+              <div><strong>IP Address:</strong> ${status.ip}</div>
+              <div><strong>Signal Strength:</strong> ${status.rssi} dBm</div>
+            `;
+          } else {
+            statusMsg = 'Connecting to WiFi...';
+            statusColor = '#ff9800';
+            detailsHtml = 'Trying to connect to saved network...';
+          }
+
+        } else {
+          // AP 模式下显示切换到 STA
+          btnSwitchToSTA.style.display = 'block';
+          btnSwitchToAP.style.display = 'none';
+
+          statusMsg = 'Access Point Mode';
+          statusColor = '#2196F3';
+          detailsHtml = `
+            <div><strong>AP SSID:</strong> CXN0102_Web_Controller</div>
+            <div><strong>AP IP:</strong> ${status.ip}</div>
+          `;
+        }
+      
+        statusIcon.style.backgroundColor = statusColor;
+        statusText.textContent = statusMsg;
+        details.innerHTML = detailsHtml;
+      
+      } catch (error) {
+        console.error('Failed to update WiFi status:', error);
+        document.getElementById('wifiStatusText').textContent = 'Status update failed';
+      }
+    }
+
+    async function scanWiFi() {
+      const ssidSelect = document.getElementById('ssidSelect');
+      ssidSelect.innerHTML = '<option>Scanning...</option>';
+      
+      try {
+        const response = await fetch('/wifi_scan');
+        const result = await response.json();
+        displayWiFiNetworks(result.networks);
+        document.getElementById('lastScanTime').innerText = 'Last scanned: just now';
+      } catch (error) {
+        ssidSelect.innerHTML = '<option>Scan failed</option>';
+        console.error('Scan failed:', error);
+      }
+    }
+
+    function displayWiFiNetworks(networks) {
+      const ssidSelect = document.getElementById('ssidSelect');
+      ssidSelect.innerHTML = '<option value="">Select a network</option>';
+      
+      if (!networks || networks.length === 0) {
+        ssidSelect.innerHTML += '<option>No networks found</option>';
+        return;
+      }
+    
+      networks.forEach(network => {
+        const option = document.createElement('option');
+        option.value = network.ssid;
+        option.textContent = `${network.ssid} (${network.rssi} dBm)`;
+        ssidSelect.appendChild(option);
+      });
+    }
+
+    async function saveCredentials() {
+      const ssid = document.getElementById('ssidSelect').value;
+      const password = document.getElementById('wifiPassword').value;
+    
+      if (!ssid) {
+        showStatus('Please select a network');
+        return;
+      }
+    
+      if (password.length < 8) {
+        showStatus('Password must be at least 8 characters long');
+        return;
+      }
+    
+      try {
+        showStatus('Saving credentials...');
+        const response = await fetch(`/wifi_connect?ssid=${encodeURIComponent(ssid)}&pwd=${encodeURIComponent(password)}`);
+        const result = await response.text();
+      
+        showStatus(result);
+      
+        // 更新状态
+        setTimeout(updateWiFiStatus, 2000);
+        
+      } catch (error) {
+        showStatus('Save failed: ' + error);
+      }
+    }
+
+    async function switchToSTA() {
+      if (confirm('Switch to STA mode? This will reboot the device.')) {
+        try {
+          showStatus('Switching to STA mode...');
+          const response = await fetch('/set_wifi_mode?mode=sta');
+          const result = await response.text();
+          showStatus(result);
+        } catch (error) {
+          showStatus('Switch failed: ' + error);
+        }
+      }
+    }
+
+    async function switchToAP() {
+      try {
+        showStatus('Switching to AP mode...');
+        const response = await fetch('/set_wifi_mode?mode=ap');
+        const result = await response.text();
+        showStatus(result);
+
+        setTimeout(updateWiFiStatus, 2000);
+
+      } catch (error) {
+        showStatus('Switch failed: ' + error);
+      }
+    }
+
+    // 定期更新WiFi状态
+    setInterval(updateWiFiStatus, 5000);
+   
+    // 页面加载时自动更新网络列表和状态
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSettings();
+      refreshDeviceInfo();
+      autoRefreshDeviceInfo();
+      updateWiFiStatus();
+      scanWiFi(); // 自动扫描
+      // 确保风扇按钮状态正确显示
+      setTimeout(() => {
+        console.log('Page loaded, initializing fan button states...');
+        // 重新从服务器获取一次设置以确保风扇状态正确
+        fetch('/get_settings')
+          .then(r => r.json())
+          .then(s => {
+            if (s.fanMode !== undefined) {
+              updateFanButtonState(s.fanMode);
+            }
+          });
+      }, 1000);
+    });
+</script>
+</body>
+</html>
