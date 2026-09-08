@@ -4,6 +4,7 @@
 
 > **🚀 Important Notice:**  
 > This project is **now fully open-source**! You can freely download, compile, and flash the firmware onto your ESP32-C3 SuperMini without a license.
+> 备注：推荐使用微雪的esp32c3迷你开发板。淘宝的盗版esp32c3supermini过多，天线没有调整过，容易没有信号。注意gpio位置即可。
 
 ---
 > **Connections:**  
