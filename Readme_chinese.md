@@ -1,85 +1,139 @@
-# cxn0102projector_controller_esp32c3_supermini
-接线图和页面说明：![click here](/v3.2/Esp32c3supermini驱动小宝光机接线图.pdf)
+# CXN0102 投影光机 ESP32-C3 SuperMini 控制器
 
-> **🚀 重要提示：**
-> 本项目已 **完全开源**！你可以自由下载、编译并刷写固件到你的 ESP32-C3 SuperMini，无需购买许可证。
+[English README](README.md) · [最新 V4.3 源码与固件](v4.3/) · [接线图](figures/Esp32c3_supermini_wiring.png)
 
----
+这是一个面向 CXN0102 投影光机的开源 Wi-Fi/I²C 控制器，运行于 ESP32-C3 SuperMini。V4.3 提供自适应中英文网页、光机控制、状态监测、可配置高温关机和可选风扇控制。
 
-## 🔥 如何下载并刷写二进制文件
+> [!IMPORTANT]
+> 本项目完全开源，不需要许可证。条件允许时推荐使用微雪 ESP32-C3-Zero/迷你开发板。部分低价 SuperMini 兼容板的天线匹配较差，接线前也必须核对实际 GPIO 标记。
 
-请按照以下详细步骤，使用 **ESP32 Flash Download Tool** 将二进制文件刷入你的 ESP32-C3 开发板。
+> [!WARNING]
+> `COM_REQ` 看起来是开漏输出。GPIO10 应连接外部上拉电阻，约 **5 kΩ** 已验证可用。如果 `COM_REQ` 不工作，普通 I²C 控制和定时查询仍可使用，但可能收不到光机主动异步通知。
 
-### 1️⃣ 下载 ESP32 Flash Download Tool
+## V4.3 网页
 
-- **官方下载：**  
-  请访问 [Espressif 文档](https://docs.espressif.com/projects/esp-test-tools/en/latest/esp32/production_stage/tools/flash_download_tool.html) 获取该工具。
+![V4.3 中文遥控首页](figures/v4.3-dashboard-zh.png)
 
-- **仓库下载：**  
-  该工具也可在本项目目录中找到：  
-  📂 `cxn0102projector_controller_esp32c3_supermini/download_tool`
+## V4.3 主要功能
 
-### 2️⃣ 获取正确的二进制文件
+- 手机和电脑均可使用的自适应中英文网页。
+- 开始、停止、重启、关机及可选开机自动开始。
+- 梯形校正、画面翻转、光轴与双相位调整。
+- 画质控制、内置测试图案和经过长度检查的自定义 I²C 指令。
+- AP/STA Wi-Fi 模式和多网络保存管理。
+- 最近一小时光机温度与 ESP32-C3 芯片温度曲线。
+- 可设置阈值的高温自动关机，连续两次有效超限才执行。
+- 静音、正常、激进、自动、全速、自定义曲线、PID 和 PID 自动整定。
+- 面向单散热片设备的“关闭风扇”模式；温度记录与高温关机继续运行。
+- 显示光机温度阈值、累计运行时间、固件/参数/数据版本、LOT 和序列号。
+- EEPROM/NVS 设置持久化。
+- ESP32-C3 运行在 80 MHz，并优化 Wi-Fi 功耗。
 
-- 从本仓库的开源资源中下载与你设备匹配的 **.bin** 文件。
+固件编译及网页模拟测试已通过；COM_REQ 时序、风扇 PWM 和人为升温关机仍需在目标硬件上验收。
 
-### 3️⃣ 设置刷写工具
+## 接线
 
-- **打开 ESP32 Flash Download Tool。**
-- **配置以下设置：**
-  - **芯片类型：** `ESP32-C3`
-  - **固件模式：** `Development`
-  - **接口：** `UART`
+![ESP32-C3 接线图](figures/Esp32c3_supermini_wiring.png)
 
-### 4️⃣ 配置并刷写固件
+[下载可编辑 SVG](figures/Esp32c3_supermini_wiring.svg)。这是逻辑接线图，不代表实物焊盘排列；实心圆表示连接，跨线弧表示交叉但不相连。J3 编号沿用原项目资料，接线时请对照实物确认 Pin 1 方向。
 
-- **使用默认设置：**  
-  大多数情况下，无需修改默认配置。
+| ESP32-C3 引脚 | 功能 |
+|---|---|
+| GPIO8 | I²C SDA |
+| GPIO7 | I²C SCL |
+| GPIO10 | COM_REQ 输入，建议外接上拉 |
+| GPIO2 | 长按关机按钮，低电平有效 |
+| GPIO6 | 25 kHz 风扇 PWM 输出 |
 
-- **刷写地址：**  
-  将二进制文件烧录到芯片地址 **`0x0`**。
+V4.3 使用的光机 I²C 地址为 `0x77`。上电前请根据实际控制板确认电平、共地和引脚标记。
 
-- **开始刷写：**  
-  点击 **“Start Flash”** 或 **“Download”**，然后等待过程完成。
+## 首次连接
 
-### 5️⃣ 验证并重启
+刷写并重启 ESP32-C3 后：
 
-- 刷写完成后，你应会看到 **“Flash Successful”** 的提示信息。
-- **重启你的 ESP32-C3 SuperMini** 以应用新固件。
+1. 连接 Wi-Fi：`CXN0102_Web_Controller_Silver`。
+2. 默认密码：`12345678`。
+3. 浏览器打开 `http://192.168.4.1/`。
+4. 如需接入路由器，在无线网络区域保存网络并切换到 STA 模式。
 
----
+网页控制器没有用户身份验证。不要直接暴露到公网；正式使用前如不适合使用默认热点密码，请在源码中修改后重新构建。
 
-## 🔥 连接方式
-![点击查看](Esp32c3supermini驱动小宝光机接线图.pdf)
+## 刷写 V4.3 预编译固件
 
-## 🆕 更新与版本历史
+### 简单方式：合并固件
 
-### **🔹 v3.3（测试版）**
-- ✅ **新增：** 将用户设置存储到 **EEPROM**，重启后仍能保持配置  
-- ✅ **改进：** 多设置保存时的稳定性优化
+使用乐鑫 [Flash Download Tool](https://docs.espressif.com/projects/esp-test-tools/en/latest/esp32/production_stage/tools/flash_download_tool.html)，也可以使用仓库 [`download_tool`](download_tool/) 中保存的工具。
 
-### **🔹 v3.2（最新发布版）**
-- ✅ **新增：** gpio2 按键用于关机
+选择 `ESP32-C3` 和 `UART`，然后刷写：
 
-### **🔹 v3.1 **
-- ✅ **新增：** 中文支持
-- ✅ **改进：** 接线布局调整
+| 文件 | 地址 |
+|---|---:|
+| [`v4.3_merged_0x0.bin`](v4.3/bin/v4.3_merged_0x0.bin) | `0x0` |
 
-📸 **截图：**  
-![ESP32 Flash 工具](v3.1/CXN0102v3.1.png)
+合并固件已包含 bootloader、分区表、程序和 SPIFFS 网页。刷写合并固件可能清除以前保存的控制器设置。
 
-### **🔹 v3.0**
-- ✅ **新增：** 自定义 I2C 命令  
-- ✅ **新增：** WiFi 发射功率设置  
+### 高级方式：分别刷写
 
-📸 **截图：**  
-![ESP32 Flash 工具](v3.0/CXN0102%20Controller%20v3.0%20(Author%20vx_samzhangxian)%20-%20Google%20Chrome%202_15_2025%2012_36_12%20PM.png)
+| 文件 | 地址 |
+|---|---:|
+| [`bootloader.bin`](v4.3/bin/bootloader.bin) | `0x0` |
+| [`partitions.bin`](v4.3/bin/partitions.bin) | `0x8000` |
+| [`firmware.bin`](v4.3/bin/firmware.bin) | `0x10000` |
+| [`spiffs.bin`](v4.3/bin/spiffs.bin) | `0x290000` |
 
-### **以前的版本**
-- **v2.0, v2.2, v2.3** 可在仓库中找到  
-  📩 **如需帮助，请联系我！**
+可用 [`SHA256SUMS.txt`](v4.3/bin/SHA256SUMS.txt) 校验下载文件。不要把单独的 `firmware.bin` 刷到 `0x0`；只有合并固件才能使用 `0x0` 地址。
 
----
+## 从源码构建
 
-📌 本项目已 **完全开源**，你可以自由探索、修改和贡献。  
-🎉 **刷写愉快，开发愉快！**
+安装 [Visual Studio Code](https://code.visualstudio.com/) 和 PlatformIO 插件，或者安装 PlatformIO Core。在 `v4.3` 目录执行：
+
+```bash
+pio run
+pio run -t buildfs
+```
+
+使用 PlatformIO 上传程序和网页：
+
+```bash
+pio run -t upload
+pio run -t uploadfs
+```
+
+目标环境为 `esp32-c3-devkitm-1`、Arduino 框架、4 MB Flash、DIO 模式和 SPIFFS。完整配置见 [`v4.3/platformio.ini`](v4.3/platformio.ini)。
+
+## 温度安全说明
+
+- 高温自动关机默认关闭，需要用户确认阈值后主动启用。
+- 默认参考阈值为光机 70°C、ESP32-C3 芯片 85°C。
+- 第一次有效超限时，有风扇的设备会请求全速输出；连续两次有效超限后执行 `Stop → Shutdown`。
+- “关闭风扇”模式始终保持 PWM 为 0，但温度采样、历史和自动关机不会停止。
+- ESP32-C3 传感器测量的是芯片内部温度，不是环境温度或外壳温度。
+- 软件只能发送光机关机指令，不能物理切断光机电源。
+
+更多实现和验证说明见 [`v4.3/POWER_V4.3.md`](v4.3/POWER_V4.3.md)。
+
+## 仓库结构
+
+| 路径 | 内容 |
+|---|---|
+| [`v4.3/`](v4.3/) | 当前源码、网页、测试和预编译固件 |
+| [`v4.2/`](v4.2/) | 上一版网页控制器 |
+| [`v3.4/`](v3.4/) | 早期 PlatformIO 源码版 |
+| [`v3.0/`](v3.0/)–[`v3.2/`](v3.2/) | 历史二进制版本 |
+| [`figures/`](figures/) | 接线图和网页截图 |
+| [`download_tool/`](download_tool/) | 留存的刷写工具 |
+
+## 版本历史
+
+| 版本 | 主要变化 |
+|---|---|
+| V4.3 | 模块化固件、80 MHz 功耗优化、Wi-Fi 改进、自适应双语网页、光机/ESP32 温度历史、可配置高温关机、完整风扇控制和无风扇模式 |
+| V4.2 | 网页控制、设置持久化和 SPIFFS 界面 |
+| V3.4 | PlatformIO 源码和协议文档 |
+| V3.2 | GPIO2 关机按钮 |
+| V3.1 | 中文界面和接线调整 |
+| V3.0 | 自定义 I²C 指令与 Wi-Fi 发射功率控制 |
+
+## 许可证
+
+见 [`LICENSE`](LICENSE)。欢迎提交改进和实机测试结果。

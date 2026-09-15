@@ -1,0 +1,1442 @@
+<!-- CXN0102 Controller V4.3 · By Lyu -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'/>
+<meta name='viewport' content='width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no'/>
+<title>CXN0102 V4.3</title>
+<style>
+:root{
+  --mono:ui-monospace,SFMono-Regular,'SF Mono','Cascadia Code','Cascadia Mono',Menlo,Consolas,'Liberation Mono',monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,'PingFang SC','Microsoft YaHei',sans-serif;
+  --bg:#08090b; --bg2:#0c0e11;
+  --panel:#101216; --panel2:#15181d; --panel3:#1b1f25;
+  --line:#1f232b; --line2:#2b303a;
+  --ink:#e7eaef; --ink2:#838b98; --ink3:#4d535e;
+  --amber:#ffae3b; --amber2:#c47e1d; --glow:rgba(255,174,59,.16);
+  --ok:#4fd98c; --okbg:#0f2a1c; --okbd:#1d5538;
+  --warn:#f0a830;
+  --err:#f06464; --errbg:#2a1213; --errbd:#5a2526;
+  --topH:50px; --botH:60px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:15px;
+  display:flex;flex-direction:column;position:relative;
+}
+/* projection-grid + lamp-glow atmosphere */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:26px 26px;
+  mask-image:radial-gradient(circle at 50% 0%,#000 0%,transparent 75%);
+}
+body::after{
+  content:'';position:fixed;left:50%;top:-140px;width:520px;height:340px;
+  transform:translateX(-50%);z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse,rgba(255,174,59,.10),transparent 68%);
+}
+
+/* ── Top instrument strip ── */
+#topbar{
+  height:var(--topH);background:linear-gradient(180deg,var(--panel2),var(--panel));
+  border-bottom:1px solid var(--line);display:flex;align-items:center;
+  padding:0 12px;gap:12px;flex-shrink:0;position:relative;z-index:10;
+}
+#topbar::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,var(--amber2),transparent);opacity:.4}
+.brand{display:flex;align-items:center;gap:8px;flex-shrink:0}
+#connDot{width:8px;height:8px;border-radius:50%;background:var(--err);flex-shrink:0;transition:background .4s}
+#connDot.on{background:var(--ok);box-shadow:0 0 0 0 rgba(79,217,140,.5);animation:pulse 2.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(79,217,140,.45)}70%{box-shadow:0 0 0 6px rgba(79,217,140,0)}100%{box-shadow:0 0 0 0 rgba(79,217,140,0)}}
+.brand .nm{font-family:var(--mono);font-size:.72rem;font-weight:600;letter-spacing:.12em;color:var(--ink)}
+.brand .nm span{color:var(--amber)}
+.top-chips{display:flex;gap:14px;flex:1;overflow:hidden;justify-content:flex-end}
+.tele{display:flex;flex-direction:column;align-items:flex-end;line-height:1.05;min-width:0}
+.tele .lab{font-family:var(--mono);font-size:.54rem;letter-spacing:.16em;color:var(--ink3);text-transform:uppercase}
+.tele .val{font-family:var(--mono);font-size:.82rem;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.tele .val b{color:var(--amber);font-weight:600}
+.tele.hide-sm{}
+@media(max-width:380px){.tele.hide-sm{display:none}}
+#langSelect{
+  background:var(--panel3);color:var(--ink2);border:1px solid var(--line2);
+  border-radius:5px;padding:4px 5px;font-family:var(--mono);font-size:.7rem;
+  cursor:pointer;flex-shrink:0;outline:none;letter-spacing:.05em;
+}
+
+/* ── Scroll area ── */
+#main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:16px 12px 22px;position:relative;z-index:1}
+.tab-content{max-width:640px;margin:0 auto}
+
+/* load reveal */
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+#tabRemote>*{animation:rise .42s both}
+#tabRemote>*:nth-child(1){animation-delay:.02s}
+#tabRemote>*:nth-child(2){animation-delay:.06s}
+#tabRemote>*:nth-child(3){animation-delay:.10s}
+#tabRemote>*:nth-child(n+4){animation-delay:.14s}
+
+/* ── Section divider (indexed, editorial) ── */
+.divider{display:flex;align-items:center;gap:11px;margin:24px 2px 12px;font-family:var(--mono);font-size:.7rem;font-weight:600;color:var(--ink2);letter-spacing:.22em;text-transform:uppercase}
+.divider:first-child{margin-top:6px}
+.divider::before{content:attr(data-i);flex:none;color:var(--amber);font-size:.66rem;font-weight:700;opacity:.9}
+.divider::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--line2),transparent)}
+
+/* ── Power keys (2×2 tactile) ── */
+.pwr-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.pwr{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  height:74px;border-radius:10px;cursor:pointer;
+  background:linear-gradient(180deg,var(--panel2),var(--panel));
+  border:1px solid var(--line2);color:var(--ink);
+  font-family:var(--mono);font-size:.74rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  transition:transform .08s,box-shadow .15s,border-color .15s,background .15s;
+  box-shadow:0 1px 0 rgba(255,255,255,.03) inset,0 2px 6px rgba(0,0,0,.3);
+}
+.pwr:active{transform:translateY(1px) scale(.985);box-shadow:0 1px 4px rgba(0,0,0,.4) inset}
+.pwr .bico{width:22px;height:22px}
+.pwr-ok{color:var(--ok);border-color:var(--okbd)}
+.pwr-ok:hover{background:linear-gradient(180deg,#13311f,var(--panel));box-shadow:0 0 16px rgba(79,217,140,.18)}
+.pwr-err{color:var(--err);border-color:var(--errbd)}
+.pwr-err:hover{background:linear-gradient(180deg,#2d1417,var(--panel));box-shadow:0 0 16px rgba(240,100,100,.16)}
+.pwr:not(.pwr-ok):not(.pwr-err):hover{border-color:var(--amber2);color:var(--amber);box-shadow:0 0 16px var(--glow)}
+
+/* ── Generic command buttons ── */
+.btn{
+  background:var(--panel2);color:var(--ink);border:1px solid var(--line2);border-radius:8px;
+  cursor:pointer;padding:11px 13px;font-family:var(--mono);font-size:.78rem;font-weight:600;
+  letter-spacing:.06em;transition:background .12s,transform .08s,box-shadow .12s,border-color .12s,color .12s;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;
+}
+.btn:hover{border-color:var(--line2);background:var(--panel3)}
+.btn:active{transform:scale(.94)}
+.btn .bico{width:16px;height:16px;flex-shrink:0}
+.btn-ok{background:var(--okbg);border-color:var(--okbd);color:var(--ok)}
+.btn-ok:hover{box-shadow:0 0 12px rgba(79,217,140,.2)}
+.btn-err{background:var(--errbg);border-color:var(--errbd);color:var(--err)}
+.btn-err:hover{box-shadow:0 0 12px rgba(240,100,100,.2)}
+.btn-warn{background:#241a0c;border-color:#4a3414;color:var(--warn)}
+.btn-warn:hover{box-shadow:0 0 12px rgba(240,168,48,.2)}
+.btn-ac{background:var(--amber);border-color:var(--amber);color:#1a1206;font-weight:700}
+.btn-ac:hover{background:#ffbc55;box-shadow:0 0 16px var(--glow)}
+.btn.on{background:var(--amber);border-color:var(--amber);color:#1a1206;box-shadow:0 0 14px var(--glow)}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+
+/* ── Keystone module ── */
+.ks-area{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap}
+.step-row{display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:14px}
+.step-lbl{font-family:var(--mono);font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+.step-btn{
+  padding:6px 14px;font-family:var(--mono);font-size:.76rem;font-weight:600;
+  background:var(--panel2);border:1px solid var(--line2);border-radius:6px;cursor:pointer;
+  color:var(--ink2);transition:all .12s;letter-spacing:.04em;
+}
+.step-btn.on{background:var(--amber);border-color:var(--amber);color:#1a1206;box-shadow:0 0 12px var(--glow)}
+.dpad{display:grid;grid-template-columns:repeat(3,62px);grid-template-rows:repeat(3,62px);gap:7px}
+.dp{
+  background:linear-gradient(180deg,var(--panel3),var(--panel));border:1px solid var(--line2);
+  border-radius:11px;cursor:pointer;font-size:1.3rem;color:var(--ink);
+  display:flex;align-items:center;justify-content:center;user-select:none;
+  transition:background .1s,transform .08s,box-shadow .12s,border-color .1s,color .1s;
+  box-shadow:0 1px 0 rgba(255,255,255,.03) inset,0 2px 5px rgba(0,0,0,.3);
+}
+.dp:hover{border-color:var(--amber2);color:var(--amber)}
+.dp:active{background:var(--amber);color:#1a1206;border-color:var(--amber);transform:scale(.9)}
+.dp-ctr{font-family:var(--mono);font-size:.66rem;font-weight:700;letter-spacing:.08em;color:var(--ink3)}
+.dp-ctr:hover{color:var(--amber)}
+.dp-void{visibility:hidden;pointer-events:none}
+.ks-preview{text-align:center}
+.ks-preview svg{display:block;width:158px;height:auto;border:1px solid var(--line);border-radius:9px;background:var(--bg2)}
+#ksPoly{filter:drop-shadow(0 0 5px rgba(255,174,59,.55))}
+.ks-vals{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;color:var(--ink3);margin-top:7px;text-transform:uppercase}
+.ks-vals b{color:var(--amber);font-weight:600}
+.flip-row{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.flip-row label{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);flex:1}
+
+/* ── Selects / inputs ── */
+select.fld,select.flip-sel{
+  background:var(--panel2);color:var(--ink);border:1px solid var(--line2);border-radius:7px;
+  padding:9px 10px;font-family:var(--mono);font-size:.8rem;cursor:pointer;outline:none;transition:border-color .15s;
+}
+select.flip-sel{flex:1;min-width:0}
+select.fld{width:100%}
+select.fld:focus,select.flip-sel:focus{border-color:var(--amber2)}
+input.fld{
+  background:var(--panel2);color:var(--ink);border:1px solid var(--line2);border-radius:7px;
+  padding:10px 12px;font-family:var(--mono);font-size:.8rem;width:100%;outline:none;transition:border-color .15s,box-shadow .15s;
+}
+input.fld:focus{border-color:var(--amber2);box-shadow:0 0 0 3px var(--glow)}
+input.fld::placeholder{color:var(--ink3)}
+
+/* ── Test pattern grid ── */
+.tp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:9px}
+.tp-btn{
+  background:var(--panel2);color:var(--ink2);border:1px solid var(--line);border-radius:7px;
+  padding:9px 4px;font-size:.73rem;cursor:pointer;transition:all .12s;text-align:center;line-height:1.3;
+}
+.tp-btn:hover{color:var(--amber);border-color:var(--amber2)}
+.tp-btn:active{transform:scale(.94);background:var(--panel3)}
+.stop-btn{
+  width:100%;min-height:46px;border-radius:8px;border:1px solid var(--errbd);background:var(--errbg);
+  color:var(--err);cursor:pointer;font-family:var(--mono);font-size:.8rem;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;transition:box-shadow .12s,transform .08s;display:flex;align-items:center;justify-content:center;gap:7px;
+}
+.stop-btn:hover{box-shadow:0 0 14px rgba(240,100,100,.2)}
+.stop-btn:active{transform:scale(.98)}
+
+/* ── Sliders ── */
+.sl-row{display:flex;align-items:center;gap:12px;margin:13px 0}
+.sl-lbl{min-width:96px;font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);flex-shrink:0}
+.sl-ctl{flex:1;display:flex;align-items:center;gap:11px;min-width:0}
+.sl-ctl input[type=range]{flex:1;min-width:0;cursor:pointer;-webkit-appearance:none;height:3px;background:var(--line2);border-radius:2px;outline:none}
+.sl-ctl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:3px;background:var(--amber);cursor:pointer;box-shadow:0 0 0 4px rgba(255,174,59,.12)}
+.sl-ctl input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:3px;background:var(--amber);cursor:pointer;border:none}
+.sl-val{min-width:40px;text-align:center;background:var(--panel2);border:1px solid var(--line2);border-radius:5px;padding:3px 6px;font-family:var(--mono);font-size:.76rem;color:var(--amber);font-variant-numeric:tabular-nums}
+
+/* ── Telemetry / info table ── */
+.info-tbl{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:8px 0}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line)}
+.info-row:last-child{border-bottom:none}
+.info-row .k{font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+.info-row .v{font-family:var(--mono);font-size:.82rem;color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* ── WiFi status ── */
+.wifi-status{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 14px;margin-bottom:11px}
+.wifi-status-hdr{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.wifi-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.wifi-dot.blink{animation:pulse 1.6s infinite}
+#wifiStatusText{font-family:var(--mono);font-size:.82rem;font-weight:600;letter-spacing:.04em}
+#wifiStatusChip{margin-left:auto;font-family:var(--mono);font-size:.62rem;letter-spacing:.16em;color:var(--amber);border:1px solid var(--amber2);border-radius:4px;padding:2px 7px}
+.wifi-det{font-family:var(--mono);font-size:.72rem;color:var(--ink2);line-height:1.9;letter-spacing:.02em}
+.wifi-det b{color:var(--ink)}
+.net-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 12px;margin-bottom:6px}
+.net-row .nm{font-family:var(--mono);font-size:.82rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.net-row .del{background:none;border:1px solid var(--errbd);color:var(--err);cursor:pointer;font-size:.8rem;line-height:1;padding:5px 9px;border-radius:6px;flex-shrink:0}
+.net-row .del:active{transform:scale(.9)}
+.net-empty{font-family:var(--mono);font-size:.72rem;color:var(--ink3);padding:8px 2px}
+.saved-ttl{font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin:12px 0 7px}
+
+/* ── Fan ── */
+.fan-head{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px}
+.fan-bar-wrap{background:var(--panel3);border-radius:4px;height:14px;overflow:hidden;border:1px solid var(--line);position:relative}
+.fan-bar{height:100%;width:0%;border-radius:3px;transition:width .6s,background .6s;background:var(--amber)}
+.fan-read{display:flex;justify-content:space-between;margin-top:9px;font-family:var(--mono)}
+#fanPwmDisplay{font-size:1.05rem;font-weight:700;color:var(--amber);font-variant-numeric:tabular-nums}
+.fan-read .raw{font-size:.7rem;color:var(--ink3);letter-spacing:.08em}
+.fan-modes{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}
+.fan-modes .btn{flex:1;min-width:72px;max-width:130px;min-height:42px;font-size:.74rem}
+.fan-custom{background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:14px;margin-top:7px;display:none}
+.fan-custom-ttl{font-family:var(--mono);font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:12px}
+/* fan algorithm graph */
+.fan-algo{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 13px;margin-bottom:8px}
+.fan-algo-hd{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}
+#fanAlgoName{font-family:var(--mono);font-size:.72rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);flex-shrink:0}
+#fanAlgoSummary{font-family:var(--mono);font-size:.64rem;color:var(--ink2);letter-spacing:.02em;text-align:right}
+#fanCurveSVG{width:100%;height:auto;display:block}
+#fanCurveSVG .ax{stroke:var(--line2);stroke-width:1}
+#fanCurveSVG .gl{stroke:var(--line);stroke-width:.6;stroke-dasharray:2 3}
+#fanCurveSVG text{font-family:var(--mono);font-size:7px;fill:var(--ink3)}
+#fanCurveLine{filter:drop-shadow(0 0 3px rgba(255,174,59,.5))}
+#fanTempMark{stroke:var(--ok);stroke-width:1;stroke-dasharray:2 2}
+#fanTempDot{fill:var(--ok)}
+/* PID panel */
+.pid-k-lbl{font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);text-align:center;margin-bottom:3px}
+input.pid-k{text-align:center;padding:7px 6px}
+.pid-adv-lbl{font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+/* temperature history */
+.thist{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 13px}
+.thist-hd{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px}
+#thistNow{color:var(--ok)}
+#thistSVG{width:100%;height:auto;display:block}
+#thistSVG .ax{stroke:var(--line2);stroke-width:1}
+#thistSVG text{font-family:var(--mono);font-size:7px;fill:var(--ink3)}
+#thistLine{fill:none;stroke:#4fd98c;stroke-width:1.6;filter:drop-shadow(0 0 3px rgba(79,217,140,.4))}
+#thistFill{fill:url(#thistGrad)}
+.thermal-protect{background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:14px;margin-bottom:10px}
+.thermal-protect .info-row{padding-left:0;padding-right:0}
+#espThistNow{color:#63b3ed}
+#espThistLine{fill:none;stroke:#63b3ed;stroke-width:1.6;filter:drop-shadow(0 0 3px rgba(99,179,237,.4))}
+#espThistFill{fill:url(#espThistGrad)}
+#espThistSVG{width:100%;height:auto;display:block}#espThistSVG .ax{stroke:var(--line2);stroke-width:1}#espThistSVG text{font-family:var(--mono);font-size:7px;fill:var(--ink3)}
+#thermalStatus.warn{color:var(--warn)}#thermalStatus.trip{color:var(--err);font-weight:700}
+
+/* ── Full-width buttons ── */
+.full-btn{width:100%;min-height:46px;border-radius:8px;border:1px solid var(--line2);background:var(--panel2);color:var(--ink);cursor:pointer;font-family:var(--mono);font-size:.78rem;font-weight:600;letter-spacing:.06em;margin:5px 0;transition:box-shadow .12s,transform .08s}
+.full-btn:active{transform:scale(.98)}
+.full-btn.ok{background:var(--okbg);border-color:var(--okbd);color:var(--ok)}
+.full-btn.warn{background:#241a0c;border-color:#4a3414;color:var(--warn)}
+.full-btn.err{background:var(--errbg);border-color:var(--errbd);color:var(--err)}
+.i2c-row{display:flex;gap:8px;margin-top:4px}
+
+/* ── Toast ── */
+#toast{
+  position:fixed;bottom:calc(var(--botH) + 14px);left:50%;transform:translateX(-50%) translateY(20px);
+  background:rgba(20,23,28,.96);backdrop-filter:blur(10px);color:var(--ink);
+  padding:10px 18px;border-radius:8px;font-family:var(--mono);font-size:.78rem;letter-spacing:.03em;
+  z-index:99;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap;max-width:90vw;
+  border:1px solid var(--line2);border-left:2px solid var(--amber);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Bottom tab bar ── */
+#tabbar{height:var(--botH);background:linear-gradient(0deg,var(--panel2),var(--panel));border-top:1px solid var(--line);display:flex;flex-shrink:0;position:relative;z-index:10}
+.tab-btn{flex:1;background:none;border:none;color:var(--ink3);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:var(--mono);font-size:.6rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;transition:color .15s;position:relative;padding-bottom:env(safe-area-inset-bottom,0)}
+.tab-btn .ico svg{width:21px;height:21px;display:block}
+.tab-btn.on{color:var(--amber)}
+.tab-btn.on::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:30px;height:2px;background:var(--amber);border-radius:0 0 3px 3px;box-shadow:0 0 8px var(--glow)}
+.tab-btn.on .ico svg{filter:drop-shadow(0 0 5px var(--glow))}
+</style>
+</head>
+<body>
+
+<!-- ── Top instrument strip ── -->
+<div id='topbar'>
+  <div class='brand'>
+    <div id='connDot'></div>
+    <div class='nm'>CXN<span>0102</span></div>
+  </div>
+  <div class='top-chips'>
+    <div class='tele hide-sm'><span class='lab'>Pan/Tilt</span><span class='val'><b id='topPan'>0</b>/<b id='topTilt'>0</b></span></div>
+    <div class='tele'><span class='lab'>Temp</span><span class='val'><b id='topTemp'>--</b>°</span></div>
+    <div class='tele'><span class='lab'>Fan</span><span class='val'><b id='topFanPct'>-</b></span></div>
+  </div>
+  <select id='langSelect' onchange='onLangChange()'><option value='en'>EN</option><option value='zh'>中</option></select>
+</div>
+
+<!-- ── Scroll area ── -->
+<div id='main'>
+
+<!-- ======== TAB: REMOTE ======== -->
+<div id='tabRemote' class='tab-content'>
+
+  <!-- Power -->
+  <div class='pwr-grid'>
+    <button class='pwr pwr-ok'  onclick='sendCommand(1)'><svg class='bico' viewBox='0 0 24 24'><path d='M7 5l12 7-12 7z' fill='currentColor'/></svg><span id='btnStartInput'>Start</span></button>
+    <button class='pwr pwr-err' onclick='sendCommand(2)'><svg class='bico' viewBox='0 0 24 24'><rect x='6' y='6' width='12' height='12' rx='2' fill='currentColor'/></svg><span id='btnStopInput'>Stop</span></button>
+    <button class='pwr'         onclick='sendCommand(3)'><svg class='bico' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M21 12a9 9 0 1 1-2.64-6.36'/><path d='M21 3v5h-5'/></svg><span id='btnReboot'>Reboot</span></button>
+    <button class='pwr'         onclick='confirmShutdown()'><svg class='bico' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'><path d='M12 4v8'/><path d='M7.5 7a8 8 0 1 0 9 0'/></svg><span id='btnShutdown'>Shutdown</span></button>
+  </div>
+  <div class='flip-row' style='margin-top:10px'>
+    <label id='labelAutoStart' for='chkAutoStart' style='display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);flex:1;cursor:pointer'>
+      <span id='autoStartTrack' style='position:relative;display:inline-block;width:36px;height:20px;border-radius:10px;background:var(--panel3);border:1px solid var(--line2);transition:background .2s;flex-shrink:0'>
+        <span id='autoStartThumb' style='position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--ink3);transition:transform .2s,background .2s'></span>
+      </span>
+      <span id='labelAutoStartText'>Auto Start on Boot</span>
+    </label>
+    <input type='checkbox' id='chkAutoStart' onchange='toggleAutoStart(this.checked)' style='display:none'>
+  </div>
+
+  <!-- Keystone -->
+  <div class='divider' id='divKeystone' data-i='01'>KEYSTONE</div>
+  <div class='step-row'>
+    <span class='step-lbl' id='stepLabel'>Step</span>
+    <button class='step-btn on' onclick='setStep(1)'  id='step1'>×1</button>
+    <button class='step-btn'    onclick='setStep(5)'  id='step5'>×5</button>
+    <button class='step-btn'    onclick='setStep(10)' id='step10'>×10</button>
+  </div>
+  <div class='ks-area'>
+    <div class='dpad'>
+      <div class='dp-void'></div>
+      <button class='dp' onclick='ksMove(0,1)'>▲</button>
+      <div class='dp-void'></div>
+      <button class='dp' onclick='ksMove(-1,0)'>◀</button>
+      <button class='dp dp-ctr' onclick='ksReset()' id='btnKsReset'>RST</button>
+      <button class='dp' onclick='ksMove(1,0)'>▶</button>
+      <div class='dp-void'></div>
+      <button class='dp' onclick='ksMove(0,-1)'>▼</button>
+      <div class='dp-void'></div>
+    </div>
+    <div class='ks-preview'>
+      <svg id='ksSVG' viewBox='0 0 130 98'>
+        <defs>
+          <linearGradient id='kg' x1='0' y1='0' x2='0' y2='1'>
+            <stop offset='0%' stop-color='#ffae3b' stop-opacity='.30'/>
+            <stop offset='100%' stop-color='#ffae3b' stop-opacity='.10'/>
+          </linearGradient>
+          <pattern id='kgrid' width='10' height='10' patternUnits='userSpaceOnUse'>
+            <path d='M10 0H0V10' fill='none' stroke='rgba(255,255,255,.04)' stroke-width='.5'/>
+          </pattern>
+        </defs>
+        <rect width='130' height='98' fill='url(#kgrid)'/>
+        <polygon id='ksGhost' points='16,10 114,10 114,88 16,88' fill='none' stroke='var(--line2)' stroke-width='1' stroke-dasharray='3,3'/>
+        <polygon id='ksPoly'  points='16,10 114,10 114,88 16,88' fill='url(#kg)' stroke='#ffae3b' stroke-width='1.6'/>
+        <line x1='65' y1='45' x2='65' y2='53' stroke='var(--amber2)' stroke-width='1'/>
+        <line x1='61' y1='49' x2='69' y2='49' stroke='var(--amber2)' stroke-width='1'/>
+      </svg>
+      <div class='ks-vals'>Pan <b id='panDisplay'>0</b> · Tilt <b id='tiltDisplay'>0</b></div>
+    </div>
+  </div>
+  <div class='flip-row'>
+    <label id='labelFlipMode'>Flip:
+      <select id='flip' class='flip-sel' onchange='ksDebounce()'>
+        <option id='optionFlipNone'       value='0'>None</option>
+        <option id='optionFlipHorizontal' value='1'>Horizontal</option>
+        <option id='optionFlipVertical'   value='2'>Vertical</option>
+        <option id='optionFlipBoth'       value='3'>Both</option>
+      </select>
+    </label>
+    <button id='btnKeystoneApply' class='btn btn-ac' onclick='applyKeystone()'>Apply</button>
+  </div>
+
+  <!-- Optical Axis -->
+  <div class='divider' id='divOptical' data-i='02'>OPTICAL AXIS</div>
+  <div class='g4'>
+    <button id='btnOpticalEnter' class='btn' onclick='guardedCmd(5)'>Enter</button>
+    <button id='btnOpticalPlus'  class='btn' onclick='guardedCmd(6)'>＋</button>
+    <button id='btnOpticalMinus' class='btn' onclick='guardedCmd(7)'>－</button>
+    <button id='btnOpticalExit'  class='btn' onclick='guardedCmd(9)'>Save</button>
+  </div>
+
+  <!-- Bi-Phase -->
+  <div class='divider' id='divBiPhase' data-i='03'>BI-PHASE</div>
+  <div class='g4'>
+    <button id='btnBiPhaseEnter' class='btn' onclick='guardedCmd(10)'>Enter</button>
+    <button id='btnBiPhasePlus'  class='btn' onclick='guardedCmd(11)'>＋</button>
+    <button id='btnBiPhaseMinus' class='btn' onclick='guardedCmd(12)'>－</button>
+    <button id='btnBiPhaseExit'  class='btn' onclick='guardedCmd(14)'>Save</button>
+  </div>
+
+  <!-- Test Pattern -->
+  <div class='divider' id='divTestPattern' data-i='04'>TEST PATTERN</div>
+  <select id='testPatternSel' class='fld' onchange='onTestPatternSelect(this.value)'>
+    <option value='0'  id='tpOff'>Off</option>
+    <option value='1'  id='btnTestColorBar'>Color Bar</option>
+    <option value='2'  id='btnTestCrossHatch'>Cross Hatch</option>
+    <option value='3'  id='btnTestRaster'>Raster</option>
+    <option value='4'  id='btnTestRamp'>Ramp</option>
+    <option value='5'  id='btnTestCircle'>Circle</option>
+    <option value='6'  id='btnTestCross'>Cross</option>
+    <option value='7'  id='btnTestCircleCross'>Circle+Cross</option>
+    <option value='8'  id='btnTestCircleFilled'>Circle Fill</option>
+    <option value='9'  id='btnTestSquareFilled'>Square Fill</option>
+    <option value='10' id='btnTestCheckerboard'>Checkerboard</option>
+    <option value='11' id='btnTestResVertical'>Res. Vert.</option>
+    <option value='12' id='btnTestResHorizontal'>Res. Horiz.</option>
+    <option value='13' id='btnTestResSquare'>Res. Square</option>
+    <option value='14' id='btnTestColorRampSpecial'>CB Ramp</option>
+    <option value='15' id='btnTestRectHatchEven'>Hatch Even</option>
+    <option value='16' id='btnTestRectHatchEqual'>Hatch Equal</option>
+  </select>
+
+</div><!-- /tabRemote -->
+
+<!-- ======== TAB: PICTURE ======== -->
+<div id='tabPicture' class='tab-content' style='display:none'>
+  <div class='divider' data-i='01' id='divPicture'>PICTURE QUALITY</div>
+  <div class='sl-row'><span class='sl-lbl' id='labelBrightness'>Brightness:</span><div class='sl-ctl'><input type='range' min='0' max='255' id='brightness' oninput='updateSV("brightnessValue",this.value)'><span class='sl-val' id='brightnessValue'>128</span></div></div>
+  <div class='sl-row'><span class='sl-lbl' id='labelContrast'>Contrast:</span><div class='sl-ctl'><input type='range' min='0' max='255' id='contrast' oninput='updateSV("contrastValue",this.value)'><span class='sl-val' id='contrastValue'>128</span></div></div>
+  <div class='sl-row'><span class='sl-lbl' id='labelHueU'>Hue U:</span><div class='sl-ctl'><input type='range' min='0' max='255' id='hueU' oninput='updateSV("hueUValue",this.value)'><span class='sl-val' id='hueUValue'>128</span></div></div>
+  <div class='sl-row'><span class='sl-lbl' id='labelHueV'>Hue V:</span><div class='sl-ctl'><input type='range' min='0' max='255' id='hueV' oninput='updateSV("hueVValue",this.value)'><span class='sl-val' id='hueVValue'>128</span></div></div>
+  <div class='sl-row'><span class='sl-lbl' id='labelSaturationU'>Sat. U:</span><div class='sl-ctl'><input type='range' min='0' max='255' id='satU' oninput='updateSV("satUValue",this.value)'><span class='sl-val' id='satUValue'>128</span></div></div>
+  <div class='sl-row'><span class='sl-lbl' id='labelSaturationV'>Sat. V:</span><div class='sl-ctl'><input type='range' min='0' max='255' id='satV' oninput='updateSV("satVValue",this.value)'><span class='sl-val' id='satVValue'>128</span></div></div>
+  <div class='sl-row'><span class='sl-lbl' id='labelSharpness'>Sharpness:</span><div class='sl-ctl'><input type='range' min='0' max='255' id='sharpness' oninput='updateSV("sharpnessValue",this.value)'><span class='sl-val' id='sharpnessValue'>128</span></div></div>
+  <div style='display:flex;gap:8px;margin-top:14px'>
+    <button id='btnPQReset' class='full-btn warn' onclick='resetPQ()' style='flex:1;margin:0'>Reset</button>
+    <button id='btnPQApply' class='full-btn' onclick='applyPQ()' style='flex:1;margin:0;background:var(--amber);border-color:var(--amber);color:#1a1206;font-weight:700'>Apply</button>
+  </div>
+</div>
+
+<!-- ======== TAB: SETTINGS ======== -->
+<div id='tabSettings' class='tab-content' style='display:none'>
+
+  <!-- Fan -->
+  <div class='divider' id='divFan' data-i='01'>FAN</div>
+  <div class='fan-head'>
+    <span id='fanModeDisplay'>Mode: Auto</span><span id='fanTempDisplay'>-- °C</span>
+  </div>
+  <div class='fan-bar-wrap'><div class='fan-bar' id='fanSpeedBar'></div></div>
+  <div class='fan-read'>
+    <span id='fanPwmDisplay'>0%</span>
+    <span class='raw'>PWM <span id='fanRawPwm'>0</span>/255</span>
+  </div>
+  <div class='fan-modes'>
+    <button id='btnFanSilent'     class='btn' onclick='setFanMode(0)'>Silent</button>
+    <button id='btnFanNormal'     class='btn' onclick='setFanMode(1)'>Normal</button>
+    <button id='btnFanAggressive' class='btn' onclick='setFanMode(2)'>Aggressive</button>
+    <button id='btnFanAuto'       class='btn' onclick='setFanMode(3)'>Auto</button>
+    <button id='btnFanCustom'     class='btn' onclick='setFanMode(5)'>Custom</button>
+    <button id='btnFanPid'        class='btn' onclick='setFanMode(6)'>PID</button>
+    <button id='btnFanOff'        class='btn warn' onclick='setFanMode(7)'>Fan Off</button>
+  </div>
+  <div id='fanAlgo' class='fan-algo'>
+    <div class='fan-algo-hd'><span id='fanAlgoName'>AUTO</span><span id='fanAlgoSummary'>—</span></div>
+    <svg id='fanCurveSVG' viewBox='0 0 280 96'>
+      <defs><linearGradient id='fanFill' x1='0' y1='0' x2='0' y2='1'>
+        <stop offset='0%' stop-color='#ffae3b' stop-opacity='.26'/>
+        <stop offset='100%' stop-color='#ffae3b' stop-opacity='.02'/>
+      </linearGradient></defs>
+      <line class='gl' x1='28' y1='8'  x2='272' y2='8'/>
+      <line class='ax' x1='28' y1='78' x2='272' y2='78'/>
+      <line class='ax' x1='28' y1='8'  x2='28'  y2='78'/>
+      <polygon  id='fanCurveFill' fill='url(#fanFill)' points=''/>
+      <polyline id='fanCurveLine' fill='none' stroke='#ffae3b' stroke-width='2' stroke-linejoin='round' points=''/>
+      <line   id='fanTempMark' x1='0' y1='0' x2='0' y2='0' style='display:none'/>
+      <circle id='fanTempDot' r='2.6' cx='0' cy='0' style='display:none'/>
+      <text x='25' y='11' text-anchor='end'>255</text>
+      <text x='25' y='80' text-anchor='end'>0</text>
+      <text id='fanCurveT0' x='28'  y='90'>20</text>
+      <text id='fanCurveT1' x='272' y='90' text-anchor='end'>80</text>
+      <text id='fanCurveTempLbl' x='0' y='0' text-anchor='middle' style='display:none;fill:#4fd98c'></text>
+    </svg>
+  </div>
+  <div id='fanCustomPanel' class='fan-custom'>
+    <div class='fan-custom-ttl' id='fanCustomTitle'>Custom Thresholds</div>
+    <div class='sl-row'><span class='sl-lbl' id='labelFanStartTemp'>Start Temp:</span><div class='sl-ctl'><input type='range' min='10' max='80'  value='25'  id='fanStartTemp' oninput='onFanCustomInput("fanStartTempVal",this.value)'><span class='sl-val' id='fanStartTempVal'>25</span></div></div>
+    <div class='sl-row'><span class='sl-lbl' id='labelFanMaxTemp'>Max Temp:</span><div class='sl-ctl'><input type='range' min='20' max='100' value='70'  id='fanMaxTemp'   oninput='onFanCustomInput("fanMaxTempVal",this.value)'><span class='sl-val' id='fanMaxTempVal'>70</span></div></div>
+    <div class='sl-row'><span class='sl-lbl' id='labelFanMinPwm'>Min PWM:</span><div class='sl-ctl'><input type='range' min='0'  max='255' value='50'  id='fanMinPwm'    oninput='onFanCustomInput("fanMinPwmVal",this.value)'><span class='sl-val' id='fanMinPwmVal'>50</span></div></div>
+    <div class='sl-row'><span class='sl-lbl' id='labelFanMaxPwm'>Max PWM:</span><div class='sl-ctl'><input type='range' min='0'  max='255' value='200' id='fanMaxPwm'    oninput='onFanCustomInput("fanMaxPwmVal",this.value)'><span class='sl-val' id='fanMaxPwmVal'>200</span></div></div>
+    <button class='full-btn ok' onclick='applyFanThresholds()' id='btnApplyFanThresh' style='margin-top:8px'>Apply</button>
+  </div>
+
+  <!-- PID panel -->
+  <div id='fanPidPanel' class='fan-custom'>
+    <div class='fan-custom-ttl' id='fanPidTitle'>PID Control</div>
+    <!-- 目标温度：拖动松手即生效（独立于增益） -->
+    <div class='sl-row'><span class='sl-lbl' id='labelPidTarget'>Target Temp:</span><div class='sl-ctl'><input type='range' min='30' max='90' value='55' id='pidTarget' oninput='updateSV("pidTargetVal",this.value)' onchange='applyPidTarget()'><span class='sl-val' id='pidTargetVal'>55</span><span style='color:var(--ink3);font-size:.72rem'>°C</span></div></div>
+    <!-- 整定进度条（整定时显示） -->
+    <div id='pidTuneProgress' style='display:none;margin:4px 0 8px'>
+      <div style='display:flex;justify-content:space-between;font-family:var(--mono);font-size:.6rem;color:var(--ink2);margin-bottom:3px'>
+        <span id='pidTuneElapsed'>0s</span>
+        <span id='pidTunePhase'>—</span>
+      </div>
+      <div style='background:var(--panel3);border-radius:3px;height:5px;overflow:hidden'><div id='pidTuneBar' style='height:100%;width:0%;background:var(--amber);border-radius:3px;transition:width .5s'></div></div>
+    </div>
+    <div id='pidStatus' style='font-family:var(--mono);font-size:.66rem;color:var(--ink2);margin:2px 0 10px;letter-spacing:.06em'>—</div>
+    <!-- 增益：手动填写 Apply，或 Auto Tune 自动算 -->
+    <div class='pid-adv-lbl' id='labelPidGains'>GAINS · Kp / Ki / Kd</div>
+    <div style='display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 8px'>
+      <input type='number' class='fld pid-k' id='pidKp' value='8.0' step='0.1' min='0.1' max='50'>
+      <input type='number' class='fld pid-k' id='pidKi' value='0.6' step='0.01' min='0' max='5'>
+      <input type='number' class='fld pid-k' id='pidKd' value='1.5' step='0.1' min='0' max='20'>
+    </div>
+    <!-- 整定时：Apply Gains 禁用，Cancel 出现 -->
+    <div style='display:flex;gap:7px' id='pidBtnRow'>
+      <button class='full-btn ok' onclick='applyPidGains()' id='btnApplyPid' style='flex:1;margin:0'>Apply Gains</button>
+      <button class='full-btn' onclick='startPidAutoTune()' id='btnAutoTune' style='flex:1;margin:0;background:#1a2233;border-color:#2a3a55'>Auto Tune</button>
+      <button class='full-btn err' onclick='cancelPidTune()' id='btnCancelTune' style='display:none;flex:1;margin:0'>Cancel</button>
+    </div>
+  </div>
+
+  <!-- Temperature history -->
+  <div class='thist'>
+    <div class='thist-hd'><span id='thistLbl'>TEMP HISTORY (1 HOUR)</span><span id='thistNow'>—</span></div>
+    <svg id='thistSVG' viewBox='0 0 280 90'>
+      <defs>
+        <linearGradient id='thistGrad' x1='0' y1='0' x2='0' y2='1'>
+          <stop offset='0%' stop-color='#4fd98c' stop-opacity='.28'/>
+          <stop offset='100%' stop-color='#4fd98c' stop-opacity='.02'/>
+        </linearGradient>
+      </defs>
+      <line class='ax' x1='28' y1='80' x2='272' y2='80'/>
+      <line class='ax' x1='28' y1='8'  x2='28'  y2='80'/>
+      <text id='thistHi' x='25' y='11' text-anchor='end'>70°</text>
+      <text id='thistLo' x='25' y='80' text-anchor='end'>30°</text>
+      <text x='28'  y='88'>0m</text>
+      <text x='89'  y='88' text-anchor='middle'>15m</text>
+      <text x='150' y='88' text-anchor='middle'>30m</text>
+      <text x='211' y='88' text-anchor='middle'>45m</text>
+      <text x='272' y='88' text-anchor='end'>60m</text>
+      <polygon id='thistFill' fill='url(#thistGrad)' points=''/>
+      <polyline id='thistLine' fill='none' stroke='#4fd98c' stroke-width='1.6' stroke-linejoin='round' points=''/>
+      <line id='thistTarget' x1='28' y1='0' x2='272' y2='0' stroke='#ffae3b' stroke-width='1' stroke-dasharray='3 2' style='display:none'/>
+    </svg>
+  </div>
+
+  <!-- User-configurable thermal shutdown + ESP32-C3 die-temperature history -->
+  <div class='divider' id='divThermal' data-i='02'>THERMAL PROTECTION</div>
+  <div class='thermal-protect'>
+    <label style='display:flex;align-items:center;gap:9px;cursor:pointer;margin-bottom:10px'>
+      <input id='highTempEnabled' type='checkbox' style='accent-color:var(--amber);width:17px;height:17px'>
+      <span id='labelHighTempEnabled'>Enable automatic high-temperature shutdown</span>
+    </label>
+    <div class='info-row'><span class='k' id='labelModuleShutdown'>Module shutdown threshold</span><span class='v'><input id='moduleShutdownTemp' class='fld' type='number' min='45' max='100' value='70' style='width:76px;text-align:center'> °C</span></div>
+    <div class='info-row'><span class='k' id='labelEspShutdown'>ESP32-C3 shutdown threshold</span><span class='v'><input id='espShutdownTemp' class='fld' type='number' min='55' max='110' value='85' style='width:76px;text-align:center'> °C</span></div>
+    <button id='btnApplyThermal' class='full-btn warn' onclick='applyThermalProtection()'>Apply protection settings</button>
+    <div id='thermalStatus' style='font-family:var(--mono);font-size:.66rem;color:var(--ink2);line-height:1.7;margin-top:9px'>Waiting for temperature sample…</div>
+  </div>
+  <div class='thist'>
+    <div class='thist-hd'><span id='espThistLbl'>ESP32-C3 DIE TEMPERATURE (1 HOUR)</span><span id='espThistNow'>—</span></div>
+    <svg id='espThistSVG' viewBox='0 0 280 90'>
+      <defs><linearGradient id='espThistGrad' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stop-color='#63b3ed' stop-opacity='.28'/><stop offset='100%' stop-color='#63b3ed' stop-opacity='.02'/></linearGradient></defs>
+      <line class='ax' x1='28' y1='80' x2='272' y2='80'/><line class='ax' x1='28' y1='8' x2='28' y2='80'/>
+      <text id='espThistHi' x='25' y='11' text-anchor='end'>90°</text><text id='espThistLo' x='25' y='80' text-anchor='end'>40°</text>
+      <text x='28' y='88'>0m</text><text x='89' y='88' text-anchor='middle'>15m</text><text x='150' y='88' text-anchor='middle'>30m</text><text x='211' y='88' text-anchor='middle'>45m</text><text x='272' y='88' text-anchor='end'>60m</text>
+      <polygon id='espThistFill' points=''/><polyline id='espThistLine' points=''/><line id='espThistLimit' x1='28' y1='0' x2='272' y2='0' stroke='#f06464' stroke-width='1' stroke-dasharray='3 2' style='display:none'/>
+    </svg>
+    <div id='espSensorNote' style='font-family:var(--mono);font-size:.6rem;color:var(--ink3);margin-top:7px;line-height:1.55'>Internal die-temperature trend; not ambient or case temperature.</div>
+  </div>
+
+  <!-- WiFi -->
+  <div class='divider' id='divWiFi' data-i='03'>WIFI</div>
+  <div class='wifi-status'>
+    <div class='wifi-status-hdr'>
+      <div id='wifiStatusIcon' class='wifi-dot' style='background:var(--err)'></div>
+      <span id='wifiStatusText'>Checking...</span>
+      <span id='wifiStatusChip'></span>
+    </div>
+    <div id='wifiDetails' class='wifi-det'></div>
+  </div>
+  <input type='text' id='wifiSsid' class='fld' placeholder='WiFi name (SSID)' style='margin-bottom:8px'/>
+  <div style='display:flex;gap:8px;margin-bottom:8px'>
+    <input type='password' id='wifiPassword' class='fld' placeholder='Password' style='flex:1'/>
+    <button id='btnAddWiFi' class='btn btn-ok' onclick='addNet()' style='flex-shrink:0'>Add</button>
+  </div>
+  <div class='saved-ttl' id='savedTitle'>Saved Networks</div>
+  <div id='savedList'></div>
+  <button id='btnSwitchToSTA' class='full-btn ok'   onclick='switchToSTA()' style='display:none;margin-top:8px'>Switch to STA Mode (Reboot)</button>
+  <button id='btnSwitchToAP'  class='full-btn warn' onclick='switchToAP()'  style='display:none;margin-top:8px'>Switch to AP Mode</button>
+
+  <!-- TX Power -->
+  <div class='divider' id='divTxPower' data-i='04'>TX POWER</div>
+  <div style='display:flex;gap:8px;align-items:center'>
+    <select id='txPower' class='fld' style='flex:1'>
+      <option id='option78'     value='78' >19.5 dBm (≈90mW)</option>
+      <option id='option76'     value='76' >19 dBm (≈79mW)</option>
+      <option id='option74'     value='74' >18.5 dBm (≈71mW)</option>
+      <option id='option68'     value='68' >17 dBm (≈50mW)</option>
+      <option id='option60'     value='60' >15 dBm (≈32mW)</option>
+      <option id='option52'     value='52' >13 dBm (≈20mW)</option>
+      <option id='option44'     value='44' >11 dBm (≈12mW)</option>
+      <option id='option34'     value='34' >8.5 dBm (≈7mW)</option>
+      <option id='option28'     value='28' >7 dBm (≈5mW)</option>
+      <option id='option20'     value='20' >5 dBm (≈3mW)</option>
+      <option id='option8'      value='8'  >2 dBm (≈1.6mW)</option>
+      <option id='optionMinus4' value='-4' >-1 dBm (≈0.8mW)</option>
+    </select>
+    <button id='btnTxApply' class='btn btn-ac' onclick='applyTx()' style='flex-shrink:0'>Apply</button>
+  </div>
+
+  <!-- Custom I2C -->
+  <div class='divider' id='divI2C' data-i='05'>I2C</div>
+  <div style='font-family:var(--mono);font-size:.66rem;color:var(--ink3);margin-bottom:8px;letter-spacing:.04em' id='customI2CExample'>(e.g.: 0b0100 for shutdown)</div>
+  <div class='i2c-row'>
+    <input type='text' id='customCmd' class='fld' placeholder='Enter hex command'/>
+    <button id='btnSendCustom' class='btn btn-ac' onclick='sendCustomCommand()' style='flex-shrink:0'>Send</button>
+  </div>
+
+  <!-- System -->
+  <div class='divider' id='divSystem' data-i='06'>SYSTEM</div>
+  <div class='g2' style='margin-bottom:10px'>
+    <button id='btnSaveAll'     class='btn btn-ok'   onclick='saveAllParams()'>Save All</button>
+    <button id='btnRefreshInfo' class='btn'          onclick='refreshDeviceInfo()'>Refresh</button>
+    <button id='btnClearEEPROM' class='btn btn-warn' onclick='clearEEPROM()'>Clear EEPROM</button>
+    <button id='btnFactoryReset' class='btn btn-err' onclick='factoryReset()'>Factory Reset</button>
+  </div>
+  <div class='info-tbl'>
+    <div class='info-row'><span class='k' id='temperatureLabel'>Temperature</span><span class='v'><span id='temperatureValue'>--</span> °C</span></div>
+    <div class='info-row'><span class='k' id='muteThresholdLabel'>Mute Threshold</span><span class='v'><span id='muteThresholdValue'>--</span> °C</span></div>
+    <div class='info-row'><span class='k' id='stopThresholdLabel'>Stop Threshold</span><span class='v'><span id='stopThresholdValue'>--</span> °C</span></div>
+    <div class='info-row'><span class='k' id='runtimeLabel'>Runtime</span><span class='v' id='runtimeValue'>--</span></div>
+    <div class='info-row'><span class='k' id='firmwareLabel'>Firmware</span><span class='v' id='firmwareValue'>--</span></div>
+    <div class='info-row'><span class='k' id='parameterLabel'>Parameter</span><span class='v' id='parameterValue'>--</span></div>
+    <div class='info-row'><span class='k' id='dataLabel'>Data</span><span class='v' id='dataValue'>--</span></div>
+    <div class='info-row' style='display:none'><span class='k' id='lotLabel'>LOT</span><span class='v' id='lotValue'>--</span></div>
+    <div class='info-row'><span class='k' id='serialLabel'>Serial</span><span class='v' id='serialValue'>--</span></div>
+  </div>
+
+</div><!-- /tabSettings -->
+
+</div><!-- /main -->
+
+<!-- ── Toast ── -->
+<div id='toast'></div>
+
+<!-- ── Confirm modal ── -->
+<div id='confirmModal' onclick='if(event.target===this)closeConfirm(false)'
+     style='display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;align-items:center;justify-content:center'>
+  <div style='background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:18px;max-width:320px;margin:0 18px;box-shadow:0 8px 30px rgba(0,0,0,.5)'>
+    <div id='confirmMsg' style='font-size:.9rem;color:var(--ink);margin-bottom:16px;line-height:1.6'></div>
+    <div style='display:flex;gap:8px'>
+      <button id='confirmCancel' class='full-btn' style='flex:1;margin:0' onclick='closeConfirm(false)'>Cancel</button>
+      <button id='confirmOk' class='full-btn err' style='flex:1;margin:0' onclick='closeConfirm(true)'>Stop</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Bottom tab bar ── -->
+<nav id='tabbar'>
+  <button class='tab-btn on' onclick='showTab("Remote")' id='tabBtnRemote'>
+    <span class='ico'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round'><rect x='3' y='4' width='18' height='16' rx='3'/><circle cx='8.5' cy='12' r='1.6' fill='currentColor' stroke='none'/><path d='M14 9.5h4M14 14.5h4'/></svg></span>
+    <span id='tabLblRemote'>Remote</span>
+  </button>
+  <button class='tab-btn' onclick='showTab("Picture")' id='tabBtnPicture'>
+    <span class='ico'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round'><circle cx='7' cy='7' r='2'/><line x1='11' y1='7' x2='20' y2='7'/><circle cx='15' cy='13' r='2'/><line x1='4' y1='13' x2='11' y2='13'/><line x1='17' y1='13' x2='20' y2='13'/><circle cx='9' cy='18' r='2'/><line x1='13' y1='18' x2='20' y2='18'/><line x1='4' y1='18' x2='5' y2='18'/></svg></span>
+    <span id='tabLblPicture'>Picture</span>
+  </button>
+  <button class='tab-btn' onclick='showTab("Settings")' id='tabBtnSettings'>
+    <span class='ico'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='3'/><path d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'/></svg></span>
+    <span id='tabLblSettings'>Settings</span>
+  </button>
+</nav>
+
+<script>
+// ===== State =====
+let panVal=0,tiltVal=0,ksStep=1,ksTimer=null,currentTab='Remote';
+
+// ===== Tab switching =====
+function showTab(name){
+  ['Remote','Picture','Settings'].forEach(t=>{
+    document.getElementById('tab'+t).style.display=t===name?'block':'none';
+    document.getElementById('tabBtn'+t).classList.toggle('on',t===name);
+  });
+  currentTab=name;
+  document.getElementById('main').scrollTop=0;
+}
+
+// ===== Slider util =====
+function updateSV(id,v){document.getElementById(id).textContent=v}
+
+// ===== Toast =====
+let toastTimer;
+function showStatus(msg,dur=2500){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+// ===== Connection =====
+function checkConn(){
+  return fetch('/ping').then(r=>{
+    const d=document.getElementById('connDot');
+    if(r.ok){d.classList.add('on')}else{d.classList.remove('on')}
+  }).catch(()=>document.getElementById('connDot').classList.remove('on'));
+}
+// 隐藏页面暂停周期请求；上一次未完成时不叠加请求。
+function pollVisible(task, interval){
+  let busy=false;
+  setInterval(async()=>{
+    if(document.hidden||busy)return;
+    busy=true;
+    try{await task()}finally{busy=false}
+  },interval);
+}
+pollVisible(checkConn,5000);
+
+// ===== Commands =====
+let projectorStarted=true; // 光机运行状态（由 /get_fan_status 同步）
+function sendCommand(cmd){
+  fetch(`/command?cmd=${cmd}`);
+  if(cmd===1) projectorStarted=true;            // Start
+  else if(cmd===2||cmd===4) projectorStarted=false; // Stop / Shutdown
+}
+
+// ===== Confirm modal =====
+let confirmCb=null;
+function showConfirm(msg,okLabel,cancelLabel,cb){
+  document.getElementById('confirmMsg').textContent=msg;
+  document.getElementById('confirmOk').textContent=okLabel;
+  document.getElementById('confirmCancel').textContent=cancelLabel;
+  confirmCb=cb;
+  document.getElementById('confirmModal').style.display='flex';
+}
+function closeConfirm(ok){
+  document.getElementById('confirmModal').style.display='none';
+  const cb=confirmCb; confirmCb=null;
+  if(cb) cb(ok);
+}
+// 调整光轴/双相位/测试图案前：若光机在运行，先弹框要求停止
+function requireStopped(action,onCancel){
+  if(!projectorStarted){ action(); return; }
+  const zh=document.getElementById('langSelect').value==='zh';
+  showConfirm(
+    zh?'光机正在运行，需先停止输入才能调整该项。是否立即停止？'
+      :'Light engine is running. Stop input first to adjust this. Stop now?',
+    zh?'停止':'Stop', zh?'取消':'Cancel',
+    ok=>{
+      if(ok){ sendCommand(2); showStatus(zh?'已停止，正在执行…':'Stopped — applying…'); setTimeout(action,400); }
+      else if(onCancel){ onCancel(); }
+    }
+  );
+}
+function guardedCmd(cmd){ requireStopped(()=>sendCommand(cmd)); }
+// 关机：投影机关机后无法通过本控制器重新开机，必须断电再上电
+function confirmShutdown(){
+  const zh=document.getElementById('langSelect').value==='zh';
+  showConfirm(
+    zh?'关机后无法通过本控制器重新开机。如需再次启动投影机，请断电后重新上电。确定关机？'
+      :'After shutdown the projector cannot be powered on from this controller. To start it again, cut the power and re-apply it. Shut down now?',
+    zh?'关机':'Shut Down', zh?'取消':'Cancel',
+    ok=>{ if(ok){ sendCommand(4); showStatus(zh?'已关机。重新启动请断电后再上电。':'Shut down. Power-cycle to start again.',5000); } }
+  );
+}
+let lastTP='0';
+function onTestPatternSelect(v){
+  if(v==='0'){ sendTestPattern(0); lastTP='0'; return; } // 关闭无需停止
+  requireStopped(
+    ()=>{ sendTestPattern(v); lastTP=v; },
+    ()=>{ document.getElementById('testPatternSel').value=lastTP; } // 取消则还原下拉
+  );
+}
+async function toggleAutoStart(on){
+  refreshAutoStartUI(on);   // 立即更新开关外观（之前漏了，导致看起来"点不了"）
+  const zh=document.getElementById('langSelect').value==='zh';
+  try{ await fetch(`/set_auto_start?v=${on?'1':'0'}`); }
+  catch(e){ showStatus(zh?'保存失败（设备离线？）':'Save failed (offline?)'); return; }
+  showStatus(on?(zh?'开机自动 Start 已开启':'Auto Start ON'):(zh?'开机自动 Start 已关闭':'Auto Start OFF'));
+}
+function refreshAutoStartUI(v){
+  const track=document.getElementById('autoStartTrack');
+  const thumb=document.getElementById('autoStartThumb');
+  if(v){
+    track.style.background='var(--amber)';track.style.borderColor='var(--amber)';
+    thumb.style.transform='translateX(16px)';thumb.style.background='var(--bg)';
+  }else{
+    track.style.background='var(--panel3)';track.style.borderColor='var(--line2)';
+    thumb.style.transform='';thumb.style.background='var(--ink3)';
+  }
+}
+function sendTestPattern(p){fetch(`/test_pattern?pattern=${p}`).then(r=>r.text()).then(t=>showStatus(t))}
+function sendCustomCommand(){
+  const cmd=document.getElementById('customCmd').value.trim();
+  if(!cmd){showStatus('Enter a command');return}
+  fetch(`/custom_command?cmd=${cmd}`).then(r=>r.text()).then(t=>showStatus(t));
+}
+
+// ===== Keystone preview (edge-length trapezoid) =====
+// pan >0 (▶): left edge shorter; pan <0 (◀): right edge shorter —— 与按键方向一致
+// tilt>0: top edge shorter;  tilt<0: bottom edge shorter
+function ksPreview(pan,tilt){
+  // Pan/Tilt 是边的倾斜角度（度）。按 tan(角度) 计算形变（真实角度行为），
+  // 用较小参考尺度 REF 让 ±30°/±20° 呈现为温和的倾斜，而非把四边形压扁。
+  const cx=65,cy=49,hw=49,hh=39,REF=30;
+  const ps=REF*Math.tan(Math.abs(pan)*Math.PI/180);
+  const ts=REF*Math.tan(Math.abs(tilt)*Math.PI/180);
+  let tlX,trX,blX,brX,tlY,trY,blY,brY;
+  if(tilt>=0){tlX=cx-hw+ts;trX=cx+hw-ts;blX=cx-hw;   brX=cx+hw}
+  else       {tlX=cx-hw;   trX=cx+hw;   blX=cx-hw+ts;brX=cx+hw-ts}
+  if(pan>=0) {tlY=cy-hh+ps;trY=cy-hh;   blY=cy+hh-ps;brY=cy+hh}
+  else       {tlY=cy-hh;   trY=cy-hh+ps;blY=cy+hh;   brY=cy+hh-ps}
+  tlX=Math.max(2,tlX);trX=Math.min(128,trX);blX=Math.max(2,blX);brX=Math.min(128,brX);
+  tlY=Math.max(2,tlY);trY=Math.max(2,trY);blY=Math.min(96,blY);brY=Math.min(96,brY);
+  document.getElementById('ksPoly').setAttribute('points',`${tlX},${tlY} ${trX},${trY} ${brX},${brY} ${blX},${blY}`);
+  document.getElementById('panDisplay').textContent=pan;
+  document.getElementById('tiltDisplay').textContent=tilt;
+  document.getElementById('topPan').textContent=pan;
+  document.getElementById('topTilt').textContent=tilt;
+}
+function ksMove(dPan,dTilt){
+  panVal =Math.max(-30,Math.min(30, panVal +dPan *ksStep));
+  tiltVal=Math.max(-20,Math.min(20, tiltVal+dTilt*ksStep));
+  ksPreview(panVal,tiltVal);ksDebounce();
+}
+function ksReset(){panVal=0;tiltVal=0;ksPreview(0,0);ksDebounce()}
+function ksDebounce(){clearTimeout(ksTimer);ksTimer=setTimeout(applyKeystone,600)}
+async function applyKeystone(){
+  clearTimeout(ksTimer);
+  const flip=document.getElementById('flip').value;
+  // /keystone 已同时下发 I2C 并持久化，无需再调用 /set_settings
+  await fetch(`/keystone?pan=${panVal}&tilt=${tiltVal}&flip=${flip}`);
+  showStatus('Keystone applied');
+}
+function setStep(s){
+  ksStep=s;
+  ['step1','step5','step10'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  document.getElementById('step'+s).classList.add('on');
+}
+
+// ===== Picture Quality =====
+async function applyPQ(){
+  const b=document.getElementById('brightness').value,c=document.getElementById('contrast').value;
+  const hU=document.getElementById('hueU').value,hV=document.getElementById('hueV').value;
+  const sU=document.getElementById('satU').value,sV=document.getElementById('satV').value;
+  const sh=document.getElementById('sharpness').value;
+  await fetch(`/set_pq?brightness=${b}&contrast=${c}&hueU=${hU}&hueV=${hV}&satU=${sU}&satV=${sV}&sharpness=${sh}`);
+  const zh=document.getElementById('langSelect').value==='zh';
+  showStatus(zh?'画质已更新':'Picture updated');
+}
+// 重置画质为默认中性值（128 → 亮度/对比/色调/饱和=0，锐度=中），并下发持久化
+async function resetPQ(){
+  ['brightness','contrast','hueU','hueV','satU','satV','sharpness']
+    .forEach(id=>{document.getElementById(id).value=128;updateSV(id+'Value',128)});
+  await fetch('/set_pq?brightness=128&contrast=128&hueU=128&hueV=128&satU=128&satV=128&sharpness=128');
+  const zh=document.getElementById('langSelect').value==='zh';
+  showStatus(zh?'画质已重置为默认':'Picture reset to default');
+}
+
+// ===== TX Power =====
+async function applyTx(){
+  const p=document.getElementById('txPower').value;
+  // /set_tx_power 已应用并持久化，无需再调用 /set_settings
+  await fetch(`/set_tx_power?power=${p}`);
+  showStatus('TX Power applied');
+}
+
+// ===== Device Info =====
+async function refreshDeviceInfo(){
+  try{
+    const info=await fetch('/get_device_info').then(r=>r.json());
+    if(info.temperature){
+      const cur=info.temperature.current;
+      document.getElementById('temperatureValue').innerText=cur;
+      document.getElementById('muteThresholdValue').innerText=info.temperature.lower;
+      document.getElementById('stopThresholdValue').innerText=info.temperature.upper;
+      document.getElementById('topTemp').textContent=cur;
+    }
+    if(info.runtime){
+      const h=Math.floor(info.runtime/3600),m=Math.floor((info.runtime%3600)/60),s=info.runtime%60;
+      document.getElementById('runtimeValue').innerText=`${h}h ${m}m ${s}s`;
+    }
+    if(info.version){
+      document.getElementById('firmwareValue').innerText=info.version.firmware;
+      document.getElementById('parameterValue').innerText=info.version.parameter;
+      document.getElementById('dataValue').innerText=info.version.data;
+    }
+    if(info.lot_number)   document.getElementById('lotValue').innerText=info.lot_number;
+    if(info.serial_number)document.getElementById('serialValue').innerText=info.serial_number;
+  }catch(e){}
+}
+
+// ===== Fan =====
+const FN={0:'Silent',1:'Normal',2:'Aggressive',3:'Auto',4:'Full',5:'Custom',6:'PID',7:'Fan Off'};
+const FNZ={0:'静音',1:'正常',2:'激进',3:'自动',4:'全速',5:'自定义',6:'PID',7:'关闭风扇'};
+let curFanMode=3, lastFanTemp=-1;
+function updateFanBtns(mode){
+  curFanMode=mode;
+  [{id:'btnFanSilent',m:0},{id:'btnFanNormal',m:1},{id:'btnFanAggressive',m:2},{id:'btnFanAuto',m:3},{id:'btnFanCustom',m:5},{id:'btnFanPid',m:6},{id:'btnFanOff',m:7}]
+    .forEach(({id,m})=>{const b=document.getElementById(id);if(b)b.classList.toggle('on',m===mode)});
+  document.getElementById('fanCustomPanel').style.display=mode===5?'block':'none';
+  document.getElementById('fanPidPanel').style.display=mode===6?'block':'none';
+  document.getElementById('fanAlgo').style.display=mode===6?'none':'block';
+}
+function setFanMode(mode){
+  const zh=document.getElementById('langSelect').value==='zh';
+  if(mode===7&&!confirm(zh?'确认关闭风扇 PWM？此模式仅适用于没有风扇、依靠散热片散热的设备。温度记录与高温关机仍会运行。':'Disable fan PWM? Use this only on fanless, heatsink-cooled devices. Temperature history and thermal shutdown will remain active.'))return;
+  fetch(`/set_fan?mode=${mode}`).then(r=>r.text()).then(()=>{
+    updateFanBtns(mode);
+    showStatus((zh?'风扇: ':'Fan: ')+(zh?FNZ:FN)[mode]);
+    updateFanStatus(); // 立刻刷新算法曲线
+  });
+}
+
+// 温度→PWM 曲线值（与固件 getFanCurve/adjustFanSpeed 公式一致）
+function fanCurveVal(t,c){
+  let n=(t-c.tmin)/(c.tmax-c.tmin); n=Math.max(0,Math.min(1,n));
+  let cv=c.factor===1?n:c.factor>1?Math.pow(n,c.factor):1-Math.pow(1-n,1/c.factor);
+  return c.pmin+cv*(c.pmax-c.pmin);
+}
+function factorLabel(f){
+  const zh=document.getElementById('langSelect').value==='zh';
+  if(f>1.05)return zh?'高温陡升':'steep';
+  if(f<0.95)return zh?'低温早启':'eased';
+  return zh?'线性':'linear';
+}
+// 绘制当前模式的算法曲线 d:{mode,full,tmin,tmax,pmin,pmax,factor,temperature}
+function renderFanAlgo(d){
+  const zh=document.getElementById('langSelect').value==='zh';
+  document.getElementById('fanAlgoName').textContent=(zh?FNZ:FN)[d.mode]||'';
+  const line=document.getElementById('fanCurveLine'),fill=document.getElementById('fanCurveFill');
+  const mark=document.getElementById('fanTempMark'),dot=document.getElementById('fanTempDot'),tl=document.getElementById('fanCurveTempLbl');
+  const t0=document.getElementById('fanCurveT0'),t1=document.getElementById('fanCurveT1');
+  const Y=p=>78-(p/255)*70;
+  if(d.disabled||d.mode===7){
+    document.getElementById('fanAlgoSummary').textContent=zh?'PWM 关闭；温度记录和高温关机保持运行':'PWM disabled; temperature history and thermal shutdown remain active';
+    const y=Y(0);
+    line.setAttribute('points',`28,${y} 272,${y}`);fill.setAttribute('points','');
+    t0.textContent='';t1.textContent='';mark.style.display='none';dot.style.display='none';tl.style.display='none';return;
+  }
+  if(d.full){
+    document.getElementById('fanAlgoSummary').textContent=zh?'固定 PWM 255（全速）':'Fixed PWM 255 (max)';
+    const y=Y(255);
+    line.setAttribute('points',`28,${y} 272,${y}`);
+    fill.setAttribute('points',`28,${y} 272,${y} 272,78 28,78`);
+    t0.textContent='';t1.textContent='';
+    mark.style.display='none';dot.style.display='none';tl.style.display='none';
+    return;
+  }
+  if(d.mode===6){
+    document.getElementById('fanAlgoSummary').textContent=zh?'PID 闭环控制':'PID closed-loop';
+    line.setAttribute('points','');fill.setAttribute('points','');
+    t0.textContent='';t1.textContent='';
+    mark.style.display='none';dot.style.display='none';tl.style.display='none';
+    return;
+  }
+  const c={tmin:+d.tmin,tmax:+d.tmax,pmin:+d.pmin,pmax:+d.pmax,factor:+d.factor};
+  document.getElementById('fanAlgoSummary').textContent=`${c.tmin}–${c.tmax}°C → PWM ${c.pmin}–${c.pmax} · ${factorLabel(c.factor)}`;
+  const margin=Math.max(4,(c.tmax-c.tmin)*0.18), axMin=c.tmin-margin, axMax=c.tmax+margin;
+  const X=t=>28+(t-axMin)/(axMax-axMin)*244;
+  let pts=[[X(axMin),Y(c.pmin)]];                       // 低于启动温度：恒定最小 PWM
+  const N=26;
+  for(let i=0;i<=N;i++){const t=c.tmin+(c.tmax-c.tmin)*i/N;pts.push([X(t),Y(fanCurveVal(t,c))])}
+  pts.push([X(axMax),Y(c.pmax)]);                        // 高于最大温度：恒定最大 PWM
+  const s=pts.map(p=>`${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  line.setAttribute('points',s);
+  fill.setAttribute('points',`${s} ${X(axMax).toFixed(1)},78 ${X(axMin).toFixed(1)},78`);
+  t0.textContent=Math.round(axMin);t1.textContent=Math.round(axMax);
+  if(typeof d.temperature==='number' && d.temperature>=0){
+    const tc=Math.max(axMin,Math.min(axMax,d.temperature));
+    const pc=fanCurveVal(Math.max(c.tmin,Math.min(c.tmax,d.temperature)),c);
+    const x=X(tc),y=Y(pc);
+    mark.setAttribute('x1',x);mark.setAttribute('x2',x);mark.setAttribute('y1',y);mark.setAttribute('y2',78);mark.style.display='';
+    dot.setAttribute('cx',x);dot.setAttribute('cy',y);dot.style.display='';
+    tl.setAttribute('x',x);tl.setAttribute('y',Math.max(12,y-5));tl.textContent=d.temperature+'°';tl.style.display='';
+  }else{mark.style.display='none';dot.style.display='none';tl.style.display='none'}
+}
+// Custom 模式：用滑块当前值实时预览曲线（应用前）
+function customCurveData(){
+  return {mode:5,full:false,
+    tmin:document.getElementById('fanStartTemp').value,tmax:document.getElementById('fanMaxTemp').value,
+    pmin:document.getElementById('fanMinPwm').value,pmax:document.getElementById('fanMaxPwm').value,
+    factor:1.0,temperature:lastFanTemp};
+}
+function onFanCustomInput(id,v){updateSV(id,v);if(curFanMode===5)renderFanAlgo(customCurveData())}
+
+async function updateFanStatus(){
+  try{
+    const d=await fetch('/get_fan_status').then(r=>r.json());
+    if(d.started!==undefined) projectorStarted=(d.started===true); // 同步光机运行状态
+    const pct=d.percent,bar=document.getElementById('fanSpeedBar');
+    bar.style.width=pct+'%';
+    bar.style.background=pct<40?'linear-gradient(90deg,#3b82f6,#4fd98c)':pct<75?'linear-gradient(90deg,#4fd98c,#ffae3b)':'linear-gradient(90deg,#ffae3b,#f06464)';
+    document.getElementById('fanPwmDisplay').textContent=pct+'%';
+    document.getElementById('fanRawPwm').textContent=d.pwm;
+    document.getElementById('topFanPct').textContent=pct+'%';
+    const zh=document.getElementById('langSelect').value==='zh';
+    document.getElementById('fanModeDisplay').textContent=(zh?'模式: ':'Mode: ')+(zh?FNZ:FN)[d.mode];
+    // 风扇轮询(2s)同时带回实时温度，顺便驱动顶栏和系统页的温度显示，保持常新
+    const tShown=d.temperature>=0?d.temperature+' °C':'-- °C';
+    document.getElementById('fanTempDisplay').textContent=tShown;
+    if(d.temperature>=0){
+      lastFanTemp=d.temperature;
+      document.getElementById('topTemp').textContent=d.temperature;
+      document.getElementById('temperatureValue').textContent=d.temperature;
+    }
+    // 渲染算法曲线：Custom 用滑块实时值，其余用后端返回曲线（PID 模式已隐藏曲线区域）
+    if(d.mode!==6) renderFanAlgo(d.mode===5?customCurveData():d);
+    // PID 模式：只更新状态文字与整定进度（不每 2 秒覆盖输入框，否则会打断编辑）
+    if(d.mode===6){
+      const ps=document.getElementById('pidStatus');
+      const cur=d.temperature>=0?d.temperature+'°C':'--°C';
+      const tgt=(d.target!==undefined)?d.target:document.getElementById('pidTarget').value;
+      const tuning=(d.tuning===true||d.tuning==='true');
+      if(tuning){
+        pidTuneActive=true;
+        lockPidControls(true); // 确保锁定
+        const elapsed=parseInt(d.tuneElapsed)||0;
+        const ts=parseInt(d.tuneState)||0;
+        // 加热阶段：进度条缓慢前行（无确定终点）；冷却阶段：最多 480s
+        const pct=ts===2 ? Math.min(100,Math.round(elapsed/480*100)) : Math.min(99,Math.round(elapsed/1800*100));
+        document.getElementById('pidTuneBar').style.width=pct+'%';
+        const em=Math.floor(elapsed/60), es=elapsed%60;
+        document.getElementById('pidTuneElapsed').textContent=em>0?`${em}m ${es}s`:`${es}s`;
+        const TUNE_PHASE={1:zh?'等待升温…':'Waiting for heat…',2:zh?'冷却测量中…':'Cooling measurement…',3:zh?'整定完成':'Tuning done'};
+        document.getElementById('pidTunePhase').textContent=TUNE_PHASE[ts]||(zh?'进行中…':'Running…');
+        if(ps) ps.textContent=`${cur}  ${elapsed}s`;
+      }else{
+        if(pidTuneActive){
+          // 刚整定完成：解锁控件，拉取新增益刷新输入框（仅此一次）
+          pidTuneActive=false;
+          lockPidControls(false);
+          fetch('/get_settings').then(r=>r.json()).then(s=>{
+            document.getElementById('pidKp').value=s.pidKp;
+            document.getElementById('pidKi').value=s.pidKi;
+            document.getElementById('pidKd').value=s.pidKd;
+            if(ps) ps.textContent=`${zh?'整定完成':'Tuned'} — Kp:${s.pidKp} Ki:${s.pidKi} Kd:${s.pidKd}`;
+          });
+          showStatus(zh?'PID 自整定完成':'PID auto-tune done');
+        }else{
+          lockPidControls(false);
+          if(ps) ps.textContent=`${zh?'当前':'Now'}: ${cur}  ${zh?'目标':'Target'}: ${tgt}°C`;
+        }
+      }
+    }else{
+      // 非 PID 模式：确保解锁
+      if(pidTuneActive){pidTuneActive=false;lockPidControls(false);}
+    }
+  }catch(e){}
+}
+pollVisible(updateFanStatus,5000);
+async function applyFanThresholds(){
+  const st=document.getElementById('fanStartTemp').value,mt=document.getElementById('fanMaxTemp').value;
+  const mn=document.getElementById('fanMinPwm').value,mx=document.getElementById('fanMaxPwm').value;
+  if(parseInt(st)>=parseInt(mt)){showStatus('Start Temp must be < Max Temp');return}
+  if(parseInt(mn)>=parseInt(mx)){showStatus('Min PWM must be < Max PWM');return}
+  await fetch(`/set_fan_thresholds?start_temp=${st}&max_temp=${mt}&min_pwm=${mn}&max_pwm=${mx}`);
+  const zh=document.getElementById('langSelect').value==='zh';
+  showStatus(zh?'阈值已保存':'Thresholds saved');
+}
+
+// ===== PID =====
+// 目标温度：拖动松手即生效（只发 target，不动增益）
+async function applyPidTarget(){
+  const t=document.getElementById('pidTarget').value;
+  const zh=document.getElementById('langSelect').value==='zh';
+  try{ await fetch(`/set_fan_pid?target=${t}`); }
+  catch(e){ showStatus(zh?'保存失败（设备离线？）':'Save failed (offline?)'); return; }
+  showStatus((zh?'目标温度: ':'Target: ')+t+'°C');
+}
+// 增益：手动 Apply（只发 kp/ki/kd，不动目标）
+async function applyPidGains(){
+  const kp=document.getElementById('pidKp').value;
+  const ki=document.getElementById('pidKi').value;
+  const kd=document.getElementById('pidKd').value;
+  await fetch(`/set_fan_pid?kp=${kp}&ki=${ki}&kd=${kd}`);
+  const zh=document.getElementById('langSelect').value==='zh';
+  showStatus(zh?'PID 增益已保存':'PID gains saved');
+}
+let pidTuneActive=false; // 前端标志：自整定进行中
+async function startPidAutoTune(){
+  const zh=document.getElementById('langSelect').value==='zh';
+  const tgt=document.getElementById('pidTarget').value;
+  if(!confirm(zh?
+    `开始 PID 自整定？目标温度 ${tgt}°C。\n风扇先降速让光机升温，再升速测量散热响应，自动算出最优参数。\n通常数分钟，升温慢时最长约 30 分钟。整定期间其他风扇设置会被锁定，可随时点"取消"。`
+    :`Start PID auto-tune? Target ${tgt}°C.\nThe fan slows to let the engine warm up, then speeds up to measure cooling and computes optimal gains.\nUsually a few minutes; up to ~30 min if warming is slow. Other fan controls stay locked during tuning — you can Cancel anytime.`))return;
+  const r=await fetch('/fan_auto_tune').then(r=>r.text()).catch(()=>'error');
+  if(r==='Auto-tune started'){
+    pidTuneActive=true;
+    lockPidControls(true);
+    showStatus(zh?'自整定已开始':'Auto-tune started');
+  }else{showStatus(r||'Error')}
+}
+async function cancelPidTune(){
+  await fetch('/fan_tune_cancel');
+  pidTuneActive=false;
+  lockPidControls(false);
+  const zh=document.getElementById('langSelect').value==='zh';
+  showStatus(zh?'已取消':'Cancelled');
+}
+function lockPidControls(lock){
+  // 锁定：禁止切换风扇模式、禁止 Custom 阈值修改、禁止 Apply Gains、禁止改目标温度
+  // opacity 只是变暗，必须同时 pointer-events:none 才真正拦住点击
+  ['btnFanSilent','btnFanNormal','btnFanAggressive','btnFanAuto','btnFanCustom','btnFanPid','btnFanOff'].forEach(id=>{
+    const b=document.getElementById(id);if(b){b.style.opacity=lock?'0.4':'1';b.style.pointerEvents=lock?'none':''}
+  });
+  const tgt=document.getElementById('pidTarget'); // 整定中锁定目标温度（设定点应在开始前定好）
+  if(tgt)tgt.disabled=lock;
+  const appBtn=document.getElementById('btnApplyPid');
+  if(appBtn)appBtn.disabled=lock;
+  const appThresh=document.getElementById('btnApplyFanThresh');
+  if(appThresh)appThresh.disabled=lock;
+  const sliders=document.querySelectorAll('#fanStartTemp,#fanMaxTemp,#fanMinPwm,#fanMaxPwm');
+  sliders.forEach(s=>s.disabled=lock);
+  document.getElementById('btnAutoTune').style.display=lock?'none':'';
+  document.getElementById('btnCancelTune').style.display=lock?'':'none';
+  document.getElementById('pidTuneProgress').style.display=lock?'':'none';
+  // 隐藏/恢复其他风扇面板
+  document.getElementById('fanCustomPanel').style.display=(curFanMode===5&&!lock)?'block':'none';
+}
+
+// ===== Temperature history =====
+const THIST_LEN=360; // 360 points × 10s = 1 hour
+let thistData=Array(THIST_LEN).fill(null);
+let espThistData=Array(THIST_LEN).fill(null),espShutdownLimit=85;
+function renderThist(targetTemp){
+  const line=document.getElementById('thistLine');
+  const fill=document.getElementById('thistFill');
+  const now=document.getElementById('thistNow');
+  const tgt=document.getElementById('thistTarget');
+  const valid=thistData.map((v,i)=>({v,i})).filter(p=>p.v!==null);
+  // 纵轴自适应：贴合数据范围（含目标线），让 40~60℃ 的变化清晰可见，而非挤在 0~100 中间
+  let lo=30, hi=70;
+  if(valid.length){
+    let mn=Math.min(...valid.map(p=>p.v)), mx=Math.max(...valid.map(p=>p.v));
+    if(targetTemp>0){mn=Math.min(mn,targetTemp);mx=Math.max(mx,targetTemp);}
+    if(mx-mn<8){const mid=(mn+mx)/2;mn=mid-4;mx=mid+4;}
+    lo=Math.floor(mn-2); hi=Math.ceil(mx+2);
+  }
+  const Y=t=>80-((t-lo)/(hi-lo))*72;
+  const X=i=>28+(i/(THIST_LEN-1))*244;
+  document.getElementById('thistHi').textContent=hi+'°';
+  document.getElementById('thistLo').textContent=lo+'°';
+  if(valid.length>0){
+    const pts=valid.map(p=>`${X(p.i).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' ');
+    line.setAttribute('points',pts);
+    fill.setAttribute('points',`${pts} ${X(valid[valid.length-1].i).toFixed(1)},80 ${X(valid[0].i).toFixed(1)},80`);
+    now.textContent=valid[valid.length-1].v+'°C';
+  }else{
+    line.setAttribute('points','');
+    fill.setAttribute('points','');
+    now.textContent='—';
+  }
+  if(targetTemp>0){
+    const y=Y(targetTemp);
+    tgt.setAttribute('y1',y);tgt.setAttribute('y2',y);tgt.style.display='';
+  }else{tgt.style.display='none'}
+}
+function renderEspThist(){
+  const valid=espThistData.map((v,i)=>({v,i})).filter(p=>Number.isFinite(p.v));
+  let lo=35,hi=90;
+  if(valid.length){let mn=Math.min(...valid.map(p=>p.v),espShutdownLimit),mx=Math.max(...valid.map(p=>p.v),espShutdownLimit);if(mx-mn<10){const mid=(mn+mx)/2;mn=mid-5;mx=mid+5}lo=Math.floor(mn-3);hi=Math.ceil(mx+3)}
+  const X=i=>28+(i/(THIST_LEN-1))*244,Y=t=>80-((t-lo)/(hi-lo))*72;
+  document.getElementById('espThistHi').textContent=hi+'°';document.getElementById('espThistLo').textContent=lo+'°';
+  const line=document.getElementById('espThistLine'),fill=document.getElementById('espThistFill');
+  if(valid.length){const pts=valid.map(p=>`${X(p.i).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' ');line.setAttribute('points',pts);fill.setAttribute('points',`${pts} ${X(valid.at(-1).i).toFixed(1)},80 ${X(valid[0].i).toFixed(1)},80`);document.getElementById('espThistNow').textContent=valid.at(-1).v.toFixed(1)+'°C'}else{line.setAttribute('points','');fill.setAttribute('points','');document.getElementById('espThistNow').textContent='—'}
+  const limit=document.getElementById('espThistLimit');if(Number.isFinite(espShutdownLimit)){const y=Y(espShutdownLimit);limit.setAttribute('y1',y);limit.setAttribute('y2',y);limit.style.display=''}else limit.style.display='none';
+}
+async function updateThermalStatus(){
+  try{
+    const d=await fetch('/get_thermal_status').then(r=>r.json()),zh=document.getElementById('langSelect').value==='zh';
+    espShutdownLimit=d.esp32_threshold;
+    if(!['highTempEnabled','moduleShutdownTemp','espShutdownTemp'].includes(document.activeElement?.id)){
+      document.getElementById('highTempEnabled').checked=d.enabled;document.getElementById('moduleShutdownTemp').value=d.module_threshold;document.getElementById('espShutdownTemp').value=d.esp32_threshold;
+    }
+    const status=document.getElementById('thermalStatus');status.className=d.tripped?'trip':(d.module_over_count||d.esp32_over_count)?'warn':'';
+    if(d.tripped)status.textContent=zh?`已触发高温关机（${d.reason==='module'?'光机':'ESP32-C3'}）；请检查散热并手动断电重启。`:`Thermal shutdown triggered by ${d.reason==='module'?'module':'ESP32-C3'} temperature. Check cooling and power-cycle manually.`;
+    else status.textContent=(zh?'ESP32-C3 芯片温度: ':'ESP32-C3 die: ')+(d.esp32_valid?Number(d.esp32_temperature).toFixed(1)+' °C':(zh?'无效':'invalid'))+' · '+(d.enabled?(zh?'保护已启用；连续 2 次超限后关机':'Protection enabled; shutdown after 2 consecutive high samples'):(zh?'保护未启用':'Protection disabled'));
+    renderEspThist();
+  }catch(e){}
+}
+async function applyThermalProtection(){
+  const zh=document.getElementById('langSelect').value==='zh',enabled=document.getElementById('highTempEnabled').checked;
+  const moduleTemp=Number(document.getElementById('moduleShutdownTemp').value),espTemp=Number(document.getElementById('espShutdownTemp').value);
+  if(!Number.isInteger(moduleTemp)||moduleTemp<45||moduleTemp>100||!Number.isInteger(espTemp)||espTemp<55||espTemp>110){showStatus(zh?'光机范围 45–100°C，ESP32 范围 55–110°C':'Module range: 45–100°C; ESP32 range: 55–110°C');return}
+  if(enabled&&!confirm(zh?'启用后，任一有效温度连续两次达到阈值会停止并关闭光机。控制器无法切断电源，确认启用？':'When enabled, two consecutive valid samples at either limit will Stop and shut down the module. The controller cannot cut power. Enable?'))return;
+  const r=await fetch(`/set_high_temp_shutdown?enabled=${enabled?1:0}&module=${moduleTemp}&esp32=${espTemp}`);
+  if(!r.ok){showStatus(await r.text());return}showStatus(zh?'高温保护设置已保存':'Thermal protection settings saved');updateThermalStatus();
+}
+async function updateThist(){
+  try{
+    const d=await fetch('/get_temp_history').then(r=>r.json());
+    if(d.temps&&d.temps.length){
+      thistData=Array(THIST_LEN).fill(null);
+      d.temps.slice(-THIST_LEN).forEach((v,i)=>{thistData[i]=(v>=0?v:null)}); // -1 = 无效 -> 断点
+    }
+    if(Array.isArray(d.esp32)){espThistData=Array(THIST_LEN).fill(null);d.esp32.slice(-THIST_LEN).forEach((v,i)=>{espThistData[i]=Number.isFinite(v)?v:null});renderEspThist()}
+    // 仅 PID 模式叠加目标温度线
+    const target=(curFanMode===6 && document.getElementById('pidTarget'))?parseInt(document.getElementById('pidTarget').value):0;
+    renderThist(target);
+  }catch(e){}
+}
+pollVisible(updateThist,10000); // 保留 10s 温度历史刷新
+pollVisible(updateThermalStatus,5000);
+
+// ===== System =====
+function factoryReset(){if(confirm('Factory reset? All settings lost.'))fetch('/factory_reset').then(r=>r.text()).then(t=>showStatus(t))}
+function saveAllParams(){fetch('/save_all').then(r=>r.text()).then(t=>showStatus(t))}
+function clearEEPROM()  {if(confirm('Clear all EEPROM?'))fetch('/clear_eeprom').then(r=>r.text()).then(t=>showStatus(t))}
+
+// ===== WiFi =====
+async function updateWiFiStatus(){
+  try{
+    const s=await fetch('/wifi_status').then(r=>r.json());
+    const dot=document.getElementById('wifiStatusIcon'),txt=document.getElementById('wifiStatusText');
+    const det=document.getElementById('wifiDetails'),chip=document.getElementById('wifiStatusChip');
+    const bSTA=document.getElementById('btnSwitchToSTA'),bAP=document.getElementById('btnSwitchToAP');
+    const zh=document.getElementById('langSelect').value==='zh';
+    const ent=zh?'入口':'Open';
+    if(s.mode==='sta'){
+      bSTA.style.display='none';bAP.style.display='block';
+      if(s.connected){
+        dot.style.background='var(--ok)';dot.classList.add('blink');
+        txt.textContent='Connected';chip.textContent='STA';
+        det.innerHTML=`SSID: <b>${s.ssid||'?'}</b><br>IP: <b>${s.ip}</b> · RSSI: ${s.rssi} dBm<br>${ent}: <b>http://cxn0102.local</b>`;
+      }else{
+        dot.style.background='var(--warn)';dot.classList.remove('blink');
+        txt.textContent='Connecting...';chip.textContent='';
+        det.innerHTML=zh?'正在连接已保存的网络…':'Connecting to saved network...';
+      }
+    }else{
+      bSTA.style.display='block';bAP.style.display='none';
+      dot.style.background='#3b82f6';dot.classList.remove('blink');
+      txt.textContent='AP Mode';chip.textContent='AP';
+      det.innerHTML=`SSID: <b>${escapeHtml(s.ssid||'?')}</b><br>IP: <b>${s.ip}</b><br>${ent}: <b>http://cxn0102.local</b> · <b>http://192.168.4.1</b>`;
+    }
+  }catch(e){}
+}
+// ===== Saved networks (manual entry, multi) =====
+let savedNets=[];
+function escapeHtml(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function renderSaved(){
+  const zh=document.getElementById('langSelect').value==='zh';
+  const list=document.getElementById('savedList');
+  if(!savedNets.length){list.innerHTML=`<div class='net-empty'>${zh?'暂无已保存网络':'No saved networks'}</div>`;return}
+  list.innerHTML=savedNets.map((n,i)=>
+    `<div class='net-row'><span class='nm'>${escapeHtml(n.ssid)}</span><button class='del' onclick='removeNet(${i})'>✕</button></div>`
+  ).join('');
+}
+async function loadSavedNets(){
+  try{
+    const r=await fetch('/wifi_saved').then(r=>r.json());
+    savedNets=r.networks||[];
+    renderSaved();
+  }catch(e){}
+}
+async function addNet(){
+  const ssid=document.getElementById('wifiSsid').value.trim();
+  const pwd=document.getElementById('wifiPassword').value;
+  const zh=document.getElementById('langSelect').value==='zh';
+  if(!ssid){showStatus(zh?'请输入 SSID':'Enter SSID');return}
+  if(pwd.length>0 && pwd.length<8){showStatus(zh?'密码至少 8 位（开放网络可留空）':'Password ≥ 8 chars (or empty for open)');return}
+  const t=await fetch(`/wifi_add?ssid=${encodeURIComponent(ssid)}&pwd=${encodeURIComponent(pwd)}`).then(r=>r.text());
+  showStatus(t);
+  document.getElementById('wifiSsid').value='';
+  document.getElementById('wifiPassword').value='';
+  loadSavedNets();
+}
+async function removeNet(i){
+  const n=savedNets[i]; if(!n)return;
+  const zh=document.getElementById('langSelect').value==='zh';
+  if(!confirm((zh?'删除网络: ':'Remove network: ')+n.ssid))return;
+  await fetch(`/wifi_remove?ssid=${encodeURIComponent(n.ssid)}`);
+  loadSavedNets();
+}
+async function switchToSTA(){
+  const zh=document.getElementById('langSelect').value==='zh';
+  // 切到 STA 前先校验至少有一个已存网络，否则切过去无网可连、还会丢失 AP 入口
+  if(!savedNets.length){showStatus(zh?'请先添加至少一个 WiFi 网络':'Add at least one WiFi network first');return}
+  if(confirm(zh?`切换到 STA 模式？设备将重启并尝试连接 ${savedNets.length} 个已保存网络。`
+               :`Switch to STA mode? Device reboots and tries your ${savedNets.length} saved network(s).`)){
+    showStatus(zh?'切换中…':'Switching...');
+    const t=await fetch('/set_wifi_mode?mode=sta').then(r=>r.text());
+    showStatus(t);
+  }
+}
+async function switchToAP(){
+  showStatus('Switching...');const t=await fetch('/set_wifi_mode?mode=ap').then(r=>r.text());showStatus(t);
+  setTimeout(updateWiFiStatus,2000);
+}
+pollVisible(updateWiFiStatus,15000);
+
+// ===== Language =====
+const LANG={
+  en:{
+    title:'CXN0102 V4.3',
+    tabLblRemote:'Remote',tabLblPicture:'Picture',tabLblSettings:'Settings',
+    btnStartInput:'Start',btnStopInput:'Stop',btnReboot:'Reboot',btnShutdown:'Shutdown',labelAutoStartText:'Auto Start on Boot',
+    divKeystone:'KEYSTONE',stepLabel:'Step',btnKsReset:'RST',btnKeystoneApply:'Apply',
+    labelFlipMode:'Flip:',optionFlipNone:'None',optionFlipHorizontal:'Horizontal',optionFlipVertical:'Vertical',optionFlipBoth:'Both',
+    divOptical:'OPTICAL AXIS',btnOpticalEnter:'Enter',btnOpticalExit:'Save',
+    divBiPhase:'BI-PHASE',btnBiPhaseEnter:'Enter',btnBiPhaseExit:'Save',
+    divTestPattern:'TEST PATTERN',tpOff:'Off',
+    btnTestColorBar:'Color Bar',btnTestCrossHatch:'Cross Hatch',btnTestRaster:'Raster',btnTestRamp:'Ramp',
+    btnTestCircle:'Circle',btnTestCross:'Cross',btnTestCircleCross:'Circle+Cross',btnTestCircleFilled:'Circle Fill',
+    btnTestSquareFilled:'Square Fill',btnTestCheckerboard:'Checkerboard',btnTestResVertical:'Res. Vert.',
+    btnTestResHorizontal:'Res. Horiz.',btnTestResSquare:'Res. Square',btnTestColorRampSpecial:'CB Ramp',
+    btnTestRectHatchEven:'Hatch Even',btnTestRectHatchEqual:'Hatch Equal',
+    divPicture:'PICTURE QUALITY',
+    labelBrightness:'Brightness:',labelContrast:'Contrast:',labelHueU:'Hue U:',labelHueV:'Hue V:',
+    labelSaturationU:'Sat. U:',labelSaturationV:'Sat. V:',labelSharpness:'Sharpness:',
+    btnPQApply:'Apply',btnPQReset:'Reset',
+    divFan:'FAN',btnFanSilent:'Silent',btnFanNormal:'Normal',btnFanAggressive:'Aggressive',btnFanAuto:'Auto',btnFanCustom:'Custom',btnFanPid:'PID',btnFanOff:'Fan Off',
+    fanCustomTitle:'Custom Thresholds',labelFanStartTemp:'Start Temp:',labelFanMaxTemp:'Max Temp:',labelFanMinPwm:'Min PWM:',labelFanMaxPwm:'Max PWM:',btnApplyFanThresh:'Apply',
+    fanPidTitle:'PID Control',labelPidTarget:'Target Temp:',labelPidGains:'GAINS · Kp / Ki / Kd',btnApplyPid:'Apply Gains',btnAutoTune:'Auto Tune',thistLbl:'TEMP HISTORY (1 HOUR)',
+    divThermal:'THERMAL PROTECTION',labelHighTempEnabled:'Enable automatic high-temperature shutdown',labelModuleShutdown:'Module shutdown threshold',labelEspShutdown:'ESP32-C3 shutdown threshold',btnApplyThermal:'Apply protection settings',espThistLbl:'ESP32-C3 DIE TEMPERATURE (1 HOUR)',espSensorNote:'Internal die-temperature trend; not ambient or case temperature.',
+    divWiFi:'WIFI',btnAddWiFi:'Add',savedTitle:'Saved Networks',wifiSsidPH:'WiFi name (SSID)',wifiPwdPH:'Password',btnSwitchToSTA:'Switch to STA Mode (Reboot)',btnSwitchToAP:'Switch to AP Mode',
+    divTxPower:'TX POWER',btnTxApply:'Apply',
+    divI2C:'I2C',customI2CExample:'(e.g.: 0b0100 for shutdown)',btnSendCustom:'Send',
+    divSystem:'SYSTEM',btnSaveAll:'Save All',btnRefreshInfo:'Refresh',btnClearEEPROM:'Clear EEPROM',btnFactoryReset:'Factory Reset',
+    temperatureLabel:'Temperature',muteThresholdLabel:'Mute Threshold',stopThresholdLabel:'Stop Threshold',
+    runtimeLabel:'Runtime',firmwareLabel:'Firmware',parameterLabel:'Parameter',dataLabel:'Data',lotLabel:'LOT',serialLabel:'Serial',
+    customCmdPH:'Enter hex command'
+  },
+  zh:{
+    title:'CXN0102 V4.3',
+    tabLblRemote:'遥控',tabLblPicture:'画质',tabLblSettings:'设置',
+    btnStartInput:'开始',btnStopInput:'停止',btnReboot:'重启',btnShutdown:'关机',labelAutoStartText:'开机自动开始',
+    divKeystone:'梯形校正',stepLabel:'步长',btnKsReset:'归零',btnKeystoneApply:'应用',
+    labelFlipMode:'翻转:',optionFlipNone:'无',optionFlipHorizontal:'水平翻转',optionFlipVertical:'垂直翻转',optionFlipBoth:'双向翻转',
+    divOptical:'光轴调整',btnOpticalEnter:'进入',btnOpticalExit:'保存',
+    divBiPhase:'双相位调整',btnBiPhaseEnter:'进入',btnBiPhaseExit:'保存',
+    divTestPattern:'测试图案',tpOff:'关闭',
+    btnTestColorBar:'彩条',btnTestCrossHatch:'十字网格',btnTestRaster:'光栅',btnTestRamp:'渐变',
+    btnTestCircle:'圆',btnTestCross:'十字',btnTestCircleCross:'圆+十字',btnTestCircleFilled:'圆(填充)',
+    btnTestSquareFilled:'正方形(填充)',btnTestCheckerboard:'棋盘格',btnTestResVertical:'分辨率(垂直)',
+    btnTestResHorizontal:'分辨率(水平)',btnTestResSquare:'分辨率(正方形)',btnTestColorRampSpecial:'彩条渐变',
+    btnTestRectHatchEven:'网格均匀',btnTestRectHatchEqual:'网格等间距',
+    divPicture:'画质调整',
+    labelBrightness:'亮度:',labelContrast:'对比度:',labelHueU:'色调U:',labelHueV:'色调V:',
+    labelSaturationU:'饱和度U:',labelSaturationV:'饱和度V:',labelSharpness:'锐度:',
+    btnPQApply:'应用',btnPQReset:'重置',
+    divFan:'风扇',btnFanSilent:'静音',btnFanNormal:'正常',btnFanAggressive:'激进',btnFanAuto:'自动',btnFanCustom:'自定义',btnFanPid:'PID',btnFanOff:'关闭风扇',
+    fanCustomTitle:'自定义阈值',labelFanStartTemp:'启动温度:',labelFanMaxTemp:'最大温度:',labelFanMinPwm:'最小PWM:',labelFanMaxPwm:'最大PWM:',btnApplyFanThresh:'应用',
+    fanPidTitle:'PID 控制',labelPidTarget:'目标温度:',labelPidGains:'增益 · Kp / Ki / Kd',btnApplyPid:'应用增益',btnAutoTune:'自动整定',thistLbl:'温度历史 (1小时)',
+    divThermal:'高温保护',labelHighTempEnabled:'启用高温自动关机',labelModuleShutdown:'光机关机阈值',labelEspShutdown:'ESP32-C3 关机阈值',btnApplyThermal:'应用保护设置',espThistLbl:'ESP32-C3 芯片温度 (1小时)',espSensorNote:'芯片内部温度趋势，不等于环境温度或外壳温度。',
+    divWiFi:'无线网络',btnAddWiFi:'添加',savedTitle:'已保存网络',wifiSsidPH:'WiFi 名称 (SSID)',wifiPwdPH:'密码',btnSwitchToSTA:'切换到STA模式(重启)',btnSwitchToAP:'切换到AP模式',
+    divTxPower:'发射功率',btnTxApply:'应用',
+    divI2C:'I2C指令',customI2CExample:'(例如: 0b0100 关机)',btnSendCustom:'发送',
+    divSystem:'系统',btnSaveAll:'保存全部',btnRefreshInfo:'刷新',btnClearEEPROM:'清空EEPROM',btnFactoryReset:'恢复出厂',
+    temperatureLabel:'温度',muteThresholdLabel:'静音阈值',stopThresholdLabel:'停止阈值',
+    runtimeLabel:'运行时间',firmwareLabel:'固件版本',parameterLabel:'参数版本',dataLabel:'数据版本',lotLabel:'批次号',serialLabel:'序列号',
+    customCmdPH:'输入十六进制命令'
+  }
+};
+
+// Elements using innerText (ID matches LANG key)
+const I18N=[
+  'tabLblRemote','tabLblPicture','tabLblSettings',
+  'btnStartInput','btnStopInput','btnReboot','btnShutdown','labelAutoStartText',
+  'stepLabel','btnKsReset','btnKeystoneApply',
+  'optionFlipNone','optionFlipHorizontal','optionFlipVertical','optionFlipBoth',
+  'btnOpticalEnter','btnOpticalExit',
+  'btnBiPhaseEnter','btnBiPhaseExit',
+  'tpOff','btnTestColorBar','btnTestCrossHatch','btnTestRaster','btnTestRamp',
+  'btnTestCircle','btnTestCross','btnTestCircleCross','btnTestCircleFilled','btnTestSquareFilled','btnTestCheckerboard',
+  'btnTestResVertical','btnTestResHorizontal','btnTestResSquare','btnTestColorRampSpecial','btnTestRectHatchEven','btnTestRectHatchEqual',
+  'labelBrightness','labelContrast','labelHueU','labelHueV','labelSaturationU','labelSaturationV','labelSharpness','btnPQReset','btnPQApply',
+  'btnFanSilent','btnFanNormal','btnFanAggressive','btnFanAuto','btnFanCustom','btnFanPid','btnFanOff',
+  'fanPidTitle','labelPidTarget','labelPidGains','btnApplyPid','btnAutoTune','thistLbl',
+  'labelHighTempEnabled','labelModuleShutdown','labelEspShutdown','btnApplyThermal','espThistLbl','espSensorNote',
+  'fanCustomTitle','labelFanStartTemp','labelFanMaxTemp','labelFanMinPwm','labelFanMaxPwm','btnApplyFanThresh',
+  'btnAddWiFi','savedTitle','btnSwitchToSTA','btnSwitchToAP',
+  'btnTxApply',
+  'customI2CExample','btnSendCustom',
+  'btnSaveAll','btnRefreshInfo','btnClearEEPROM','btnFactoryReset',
+  'temperatureLabel','muteThresholdLabel','stopThresholdLabel','runtimeLabel',
+  'firmwareLabel','parameterLabel','dataLabel','lotLabel','serialLabel'
+];
+
+// divider elements have text + decorative pseudo/data-i, so set text node only
+function setDividerText(id,text){
+  const el=document.getElementById(id);if(!el)return;
+  el.childNodes.forEach(n=>{if(n.nodeType===3)n.nodeValue=text});
+}
+const DIVIDER_IDS=['divKeystone','divOptical','divBiPhase','divTestPattern','divPicture','divFan','divThermal','divWiFi','divTxPower','divI2C','divSystem'];
+
+function switchLanguage(){
+  const lang=document.getElementById('langSelect').value,d=LANG[lang];
+  document.title=d.title;
+  I18N.forEach(id=>{const el=document.getElementById(id);if(el&&d[id]!==undefined)el.innerText=d[id]});
+  DIVIDER_IDS.forEach(id=>{if(d[id])setDividerText(id,d[id])});
+  document.getElementById('customCmd').placeholder=d.customCmdPH;
+  document.getElementById('wifiSsid').placeholder=d.wifiSsidPH;
+  document.getElementById('wifiPassword').placeholder=d.wifiPwdPH;
+  renderSaved(); // 语言切换时刷新"暂无网络"等文案
+  // labelFlipMode has child select — set leading text node only
+  const fl=document.getElementById('labelFlipMode');
+  if(fl){const tn=Array.from(fl.childNodes).find(n=>n.nodeType===3);if(tn)tn.nodeValue=d.labelFlipMode+' '}
+}
+async function onLangChange(){
+  await fetch(`/set_lang?lang=${document.getElementById('langSelect').value}`);
+  switchLanguage();
+}
+
+// ===== Load settings =====
+async function loadSettings(){
+  try{
+    const s=await fetch('/get_settings').then(r=>r.json());
+    panVal=parseInt(s.pan)||0;tiltVal=parseInt(s.tilt)||0;
+    document.getElementById('flip').value=s.flip;
+    ksPreview(panVal,tiltVal);
+    document.getElementById('txPower').value=s.txPower;
+    const pq={brightness:s.brightness,contrast:s.contrast,hueU:s.hueU??s.hue,hueV:s.hueV??s.hue,satU:s.satU??s.saturation,satV:s.satV??s.saturation,sharpness:s.sharpness};
+    Object.entries(pq).forEach(([k,v])=>{document.getElementById(k).value=v;updateSV(k+'Value',v)});
+    if(s.fanMode!==undefined)updateFanBtns(s.fanMode);
+    if(s.fanCustomStartTemp!==undefined){document.getElementById('fanStartTemp').value=s.fanCustomStartTemp;updateSV('fanStartTempVal',s.fanCustomStartTemp)}
+    if(s.fanCustomMaxTemp!==undefined){document.getElementById('fanMaxTemp').value=s.fanCustomMaxTemp;updateSV('fanMaxTempVal',s.fanCustomMaxTemp)}
+    if(s.fanCustomMinPwm!==undefined){document.getElementById('fanMinPwm').value=s.fanCustomMinPwm;updateSV('fanMinPwmVal',s.fanCustomMinPwm)}
+    if(s.fanCustomMaxPwm!==undefined){document.getElementById('fanMaxPwm').value=s.fanCustomMaxPwm;updateSV('fanMaxPwmVal',s.fanCustomMaxPwm)}
+    if(s.pidTarget!==undefined){document.getElementById('pidTarget').value=s.pidTarget;updateSV('pidTargetVal',s.pidTarget)}
+    if(s.pidKp!==undefined){document.getElementById('pidKp').value=s.pidKp}
+    if(s.pidKi!==undefined){document.getElementById('pidKi').value=s.pidKi}
+    if(s.pidKd!==undefined){document.getElementById('pidKd').value=s.pidKd}
+    if(s.autoStartOnBoot!==undefined){document.getElementById('chkAutoStart').checked=s.autoStartOnBoot;refreshAutoStartUI(s.autoStartOnBoot)}
+    if(s.highTempShutdownEnabled!==undefined)document.getElementById('highTempEnabled').checked=s.highTempShutdownEnabled;
+    if(s.highTempModuleThreshold!==undefined)document.getElementById('moduleShutdownTemp').value=s.highTempModuleThreshold;
+    if(s.highTempEsp32Threshold!==undefined){document.getElementById('espShutdownTemp').value=s.highTempEsp32Threshold;espShutdownLimit=s.highTempEsp32Threshold}
+    document.getElementById('langSelect').value=s.lang||'en';
+    switchLanguage();
+  }catch(e){console.error(e)}
+}
+
+// ===== Init =====
+// 注意：不在加载时自动扫描 WiFi —— C3 单射频扫描会暂停 AP，导致已连接的手机掉线。
+// 扫描改为仅在用户点击 Scan 时触发（配网才需要）。
+document.addEventListener('DOMContentLoaded',()=>{
+  loadSettings();refreshDeviceInfo();updateWiFiStatus();updateFanStatus();updateThist();updateThermalStatus();loadSavedNets();
+});
+</script>
+</body>
+</html>

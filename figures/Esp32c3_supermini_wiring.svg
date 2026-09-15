@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1080" viewBox="0 0 1600 1080" role="img" aria-labelledby="title desc">
+  <title id="title">CXN0102 · ESP32-C3 SuperMini V4.3 wiring</title>
+  <desc id="desc">Logical wiring diagram: J3 pin 1 SCL to GPIO7, pin 2 SDA to GPIO8, pin 3 COM_REQ to GPIO10 with approximately 5 kiloohms pull-up to 3.3 volts. J3 pins 4 and 5 to common ground. Pins 6 and 7 to module 12 volt supply. ESP32 powered by USB-C 5 volts. Optional GPIO2 button to ground and GPIO6 fan driver signal.</desc>
+  <defs>
+    <style>
+      text{font-family:Arial,'Microsoft YaHei',sans-serif;fill:#172d40} .title{font-size:36px;font-weight:700}.sub{font-size:18px;fill:#586e7e}.h{font-size:25px;font-weight:700}.label{font-size:21px;font-weight:600}.small{font-size:17px}.wire{fill:none;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}.pin{fill:#fff;stroke:#708797;stroke-width:3}.box{fill:#fff;stroke:#d6e1e8;stroke-width:2}.blue{stroke:#2479c5}.green{stroke:#148966}.orange{stroke:#d98113}.ground{stroke:#4a5866}.red{stroke:#d84949}
+    </style>
+  </defs>
+  <rect width="1600" height="1080" fill="#f3f7fa"/>
+  <text x="65" y="70" class="title">CXN0102 × ESP32-C3 SuperMini</text>
+  <text x="65" y="105" class="sub">V4.3 接线图 / WIRING · I²C address 0x77 · 按 GPIO 编号接线</text>
+  <rect x="65" y="145" width="1470" height="615" rx="22" class="box"/>
+  <text x="100" y="192" class="h">光机 / PROJECTOR</text>
+  <text x="100" y="225" class="sub">J3 · 7-pin connector</text>
+  <rect x="100" y="255" width="230" height="420" rx="16" fill="#eaf1f5"/>
+  <text x="118" y="295" class="label">1   SCL</text><circle cx="330" cy="290" r="7" class="pin"/>
+  <text x="118" y="355" class="label">2   SDA</text><circle cx="330" cy="350" r="7" class="pin"/>
+  <text x="118" y="415" class="label">3   COM_REQ</text><circle cx="330" cy="410" r="7" class="pin"/>
+  <text x="118" y="475" class="label">4   GND</text><circle cx="330" cy="470" r="7" class="pin"/>
+  <text x="118" y="535" class="label">5   GND</text><circle cx="330" cy="530" r="7" class="pin"/>
+  <text x="118" y="595" class="label">6   +12 V</text><circle cx="330" cy="590" r="7" class="pin"/>
+  <text x="118" y="655" class="label">7   +12 V</text><circle cx="330" cy="650" r="7" class="pin"/>
+  <rect x="865" y="245" width="260" height="445" rx="20" fill="#eaf1f5" stroke="#beced9" stroke-width="2"/>
+  <text x="870" y="195" class="h">ESP32-C3</text><text x="870" y="225" class="sub">SuperMini · 逻辑端子示意</text>
+  <path d="M337 290H865" class="wire blue"/><text x="470" y="276" class="small">I²C SCL</text>
+  <path d="M337 350H865" class="wire green"/><text x="470" y="336" class="small">I²C SDA</text>
+  <path d="M337 410H865" class="wire orange"/><text x="470" y="396" class="small">COM_REQ → input</text>
+  <path d="M337 470H865M380 470V530H337" class="wire ground"/><circle cx="380" cy="470" r="6" fill="#4a5866"/>
+  <text x="470" y="456" class="small">共地 / COMMON GND</text>
+  <circle cx="865" cy="290" r="7" class="pin"/><text x="888" y="298" class="label">GPIO7 · SCL</text>
+  <circle cx="865" cy="350" r="7" class="pin"/><text x="888" y="358" class="label">GPIO8 · SDA</text>
+  <circle cx="865" cy="410" r="7" class="pin"/><text x="888" y="418" class="label">GPIO10</text>
+  <circle cx="865" cy="470" r="7" class="pin"/><text x="888" y="478" class="label">GND</text>
+  <circle cx="1125" cy="290" r="7" class="pin"/><text x="1038" y="298" class="label">3V3</text>
+  <path d="M1125 290H1170V160H780V190" class="wire orange"/>
+  <rect x="770" y="190" width="20" height="54" fill="white" stroke="#d98113" stroke-width="3"/>
+  <path d="M780 244V280Q800 290 780 300V340Q800 350 780 360V410" fill="none" stroke="white" stroke-width="10"/>
+  <path d="M780 244V280Q800 290 780 300V340Q800 350 780 360V410" class="wire orange"/><circle cx="780" cy="410" r="6" fill="#d98113"/>
+  <text x="520" y="206" class="label">≈ 5 kΩ pull-up</text><text x="520" y="234" class="small">4.7–5.1 kΩ → 3.3 V</text>
+  <rect x="470" y="565" width="325" height="130" rx="14" fill="#fff0f0" stroke="#e8baba"/>
+  <text x="490" y="600" class="label">光机电源 / MODULE SUPPLY</text><text x="490" y="630" class="small">稳压 12 V · + → J3 pins 6 + 7</text><text x="490" y="661" class="small">− → 共地 / common GND</text>
+  <path d="M337 590H445V620H470M337 650H420V620H445" class="wire red"/><circle cx="445" cy="620" r="6" fill="#d84949"/>
+  <path d="M470 670H400V660Q382 650 400 640V600Q382 590 400 580V530H380" fill="none" stroke="white" stroke-width="10"/>
+  <path d="M470 670H400V660Q382 650 400 640V600Q382 590 400 580V530H380" class="wire ground"/><circle cx="380" cy="530" r="6" fill="#4a5866"/>
+  <rect x="912" y="588" width="165" height="70" rx="12" fill="white" stroke="#99aebd" stroke-width="2"/>
+  <text x="940" y="619" class="label">USB-C</text><text x="937" y="644" class="small">5 V power</text>
+  <text x="900" y="727" class="small">ESP32 单独 USB 供电 / USB powered</text>
+  <circle cx="1125" cy="410" r="7" class="pin"/><text x="1025" y="418" class="label">GPIO2</text>
+  <path d="M1125 410H1250" class="wire ground"/><circle cx="1250" cy="410" r="5" fill="#4a5866"/>
+  <path d="M1250 410L1300 385M1310 410H1360V455" class="wire ground"/>
+  <circle cx="1310" cy="410" r="5" fill="#4a5866"/>
+  <path d="M1340 455H1380M1348 465H1372M1356 475H1364" class="wire ground"/>
+  <text x="1200" y="350" class="label">可选关机按钮</text><text x="1200" y="378" class="small">Normally open · hold to shut down</text><text x="1400" y="460" class="small">GND</text>
+  <circle cx="1125" cy="530" r="7" class="pin"/><text x="1025" y="538" class="label">GPIO6</text>
+  <path d="M1125 530H1210" class="wire" stroke="#8865bb"/>
+  <rect x="1210" y="495" width="275" height="170" rx="14" fill="#f4effa" stroke="#c9b8dd"/>
+  <text x="1230" y="528" class="label">可选风扇 / OPTIONAL</text><text x="1230" y="560" class="small">25 kHz PWM → 驱动器输入</text><text x="1230" y="589" class="small">Use a compatible fan driver.</text><text x="1230" y="618" class="small">GND 共地 · 电机独立供电</text><text x="1230" y="646" class="small">GPIO 不直接连接风扇电机</text>
+  <rect x="65" y="790" width="715" height="220" rx="20" class="box"/>
+  <text x="95" y="835" class="h">连接前核对 / CHECK BEFORE POWER</text>
+  <text x="95" y="875" class="small">• 这是逻辑接线图，端子排列不代表开发板的实际焊盘位置。</text>
+  <text x="95" y="905" class="small">• J3 编号沿用原项目接线资料；以实物 Pin 1 标记确认方向。</text>
+  <text x="95" y="935" class="small">• 12 V 只接光机供电端；禁止接入 ESP32 的 5V / 3V3 / GPIO。</text>
+  <text x="95" y="965" class="small">• COM_REQ 外部上拉接 3.3 V；I²C 电平及已有上拉需按实板核对。</text>
+  <rect x="805" y="790" width="730" height="220" rx="20" class="box"/>
+  <text x="835" y="835" class="h">无风扇设备 / PASSIVE COOLING</text>
+  <text x="835" y="875" class="small">GPIO6 留空，网页选择「关闭风扇 / Fan Off」。</text>
+  <text x="835" y="905" class="small">温度历史与高温关机设置继续保留。</text>
+  <text x="835" y="945" class="small">Leave GPIO6 unconnected and select Fan Off.</text>
+  <text x="835" y="975" class="small">Temperature history and thermal shutdown remain available.</text>
+  <text x="65" y="1050" class="sub">V4.3 · GPIO mapping checked against src/config.h · Electrical schematic, not a physical pinout</text>
+</svg>

@@ -1,0 +1,13 @@
+* text=auto
+
+*.md   text eol=lf
+*.cpp  text eol=lf
+*.h    text eol=lf
+*.ini  text eol=lf
+*.html text eol=lf
+*.txt  text eol=lf
+
+*.bin binary
+*.png binary
+*.pdf binary
+*.zip binary
