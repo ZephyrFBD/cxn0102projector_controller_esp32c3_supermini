@@ -1,6 +1,6 @@
 # CXN0102 投影光机 ESP32-C3 SuperMini 控制器
 
-[English README](README.md) · [最新 V4.3 源码与固件](v4.3/) · [接线图](figures/Esp32c3_supermini_wiring.png)
+[English README](README.md) · [最新 V4.3 源码与固件](v4.3/) · [V4.3 接线图](figures/Esp32c3_supermini_wiring_v4.3.svg) · [历史图片](figures/README.md)
 
 这是一个面向 CXN0102 投影光机的开源 Wi-Fi/I²C 控制器，运行于 ESP32-C3 SuperMini。V4.3 提供自适应中英文网页、光机控制、状态监测、可配置高温关机和可选风扇控制。
 
@@ -33,9 +33,9 @@
 
 ## 接线
 
-![ESP32-C3 接线图](figures/Esp32c3_supermini_wiring.png)
+![V4.3 ESP32-C3 接线图](figures/Esp32c3_supermini_wiring_v4.3.png)
 
-[下载可编辑 SVG](figures/Esp32c3_supermini_wiring.svg)。这是逻辑接线图，不代表实物焊盘排列；实心圆表示连接，跨线弧表示交叉但不相连。J3 编号沿用原项目资料，接线时请对照实物确认 Pin 1 方向。
+[下载可编辑 SVG](figures/Esp32c3_supermini_wiring_v4.3.svg)。这是逻辑接线图，不代表实物焊盘排列；实心圆表示连接，跨线弧表示交叉但不相连。J3 编号沿用原项目资料，接线时请对照实物确认 Pin 1 方向。[原始接线图](figures/Esp32c3_supermini_wiring.png) 已原样保留。
 
 | ESP32-C3 引脚 | 功能 |
 |---|---|

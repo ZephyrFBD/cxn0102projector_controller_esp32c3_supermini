@@ -1,6 +1,6 @@
 # CXN0102 Projector Controller for ESP32-C3 SuperMini
 
-[中文说明](Readme_chinese.md) · [Latest V4.3 source and binaries](v4.3/) · [Wiring diagram](figures/Esp32c3_supermini_wiring.png)
+[中文说明](Readme_chinese.md) · [Latest V4.3 source and binaries](v4.3/) · [V4.3 wiring diagram](figures/Esp32c3_supermini_wiring_v4.3.svg) · [Historical images](figures/README.md)
 
 An open-source Wi-Fi and I²C controller for CXN0102 projector modules, built for the ESP32-C3 SuperMini. V4.3 provides a responsive bilingual web interface, projector controls, temperature monitoring, configurable thermal shutdown, and optional fan control.
 
@@ -33,9 +33,9 @@ The delivered firmware and browser simulations pass locally. Real-hardware COM_R
 
 ## Wiring
 
-![ESP32-C3 connection diagram](figures/Esp32c3_supermini_wiring.png)
+![V4.3 ESP32-C3 connection diagram](figures/Esp32c3_supermini_wiring_v4.3.png)
 
-[Download the editable SVG](figures/Esp32c3_supermini_wiring.svg). This is a logical wiring diagram, not a physical board pinout. Dots indicate junctions; wire bridges indicate crossings without a connection. J3 numbering follows the original project reference; confirm the pin-1 orientation on your module.
+[Download the editable SVG](figures/Esp32c3_supermini_wiring_v4.3.svg). This is a logical wiring diagram, not a physical board pinout. Dots indicate junctions; wire bridges indicate crossings without a connection. J3 numbering follows the original project reference; confirm the pin-1 orientation on your module. The [original wiring image](figures/Esp32c3_supermini_wiring.png) remains available unchanged.
 
 | ESP32-C3 pin | Function |
 |---|---|
