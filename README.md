@@ -1,86 +1,147 @@
-# cxn0102projector_controller_esp32c3_supermini
-- 中文：[Readme_chinese.md](Readme_chinese.md)
-- connections pdf（接线图和页面说明）：[click here](/v3.2/Esp32c3supermini驱动小宝光机接线图.pdf)
+# CXN0102 Projector Controller for ESP32-C3 SuperMini
 
-> **🚀 Important Notice:**  
-> This project is **now fully open-source**! You can freely download, compile, and flash the firmware onto your ESP32-C3 SuperMini without a license.
-> - 备注：推荐使用微雪的esp32c3迷你开发板。淘宝的盗版esp32c3supermini过多，天线没有调整过，容易没有信号。注意gpio位置即可。
-> - The COM_REQ pin appears to be an open-drain output and requires a pull-up resistor to work with the GPIO; a 5 kΩ resistor works well.
+[中文说明](Readme_chinese.md) · [Latest V4.3 source and binaries](v4.3/) · [Original wiring diagram](figures/Esp32c3_supermini_wiring.png) · [Image archive](figures/README.md)
 
----
-> **Connections:**  
-![ESP32 Connect](/figures/Esp32c3_supermini_wiring.png)
-## 🔥 How to Download and Flash the Binary Files
+An open-source Wi-Fi and I²C controller for CXN0102 projector modules, built for the ESP32-C3 SuperMini. V4.3 provides a responsive bilingual web interface, projector controls, temperature monitoring, configurable thermal shutdown, and optional fan control.
 
-Follow the detailed steps below to flash the binary files onto your ESP32-C3 development board using the **ESP32 Flash Download Tool**.
+> [!IMPORTANT]
+> This project is fully open source and does not require a license key. The Waveshare ESP32-C3-Zero/mini boards are recommended where possible. Some low-cost SuperMini clones have poorly tuned antennas; verify the GPIO labels before wiring.
 
-### 1️⃣ Download the ESP32 Flash Download Tool
+> [!WARNING]
+> `COM_REQ` appears to be an open-drain signal. Connect GPIO10 with an external pull-up; approximately **5 kΩ** is known to work. Without a working `COM_REQ`, normal I²C commands and periodic reads can still work, but asynchronous projector notifications may be missed.
 
-- **Official Download:**  
-  Visit the [Espressif Documentation](https://docs.espressif.com/projects/esp-test-tools/en/latest/esp32/production_stage/tools/flash_download_tool.html) to get the tool.
+## V4.3 interface
 
-- **Repository Download:**  
-  The tool is also available in this project's directory:  
-  📂 `cxn0102projector_controller_esp32c3_supermini/download_tool`
+![V4.3 English remote interface](figures/v4.3-dashboard-en.png)
 
-### 2️⃣ Obtain the Correct Binary File
+## V4.3 highlights
 
-- Download the **.bin** file that matches your device from the open-source resources in this repository.
+- Responsive English/Chinese web interface for phones and desktop browsers.
+- Start, stop, reboot, shutdown and optional auto-start.
+- Keystone, image flip, optical-axis and bi-phase adjustment.
+- Picture-quality controls, built-in test patterns and validated custom I²C commands.
+- AP and STA Wi-Fi modes with saved-network management.
+- Projector temperature and ESP32-C3 die-temperature history for the latest hour.
+- Configurable high-temperature shutdown with two-sample confirmation.
+- Fan curves, full-speed mode, custom curve, PID control and PID auto-tuning.
+- **Fan Off** mode for fanless, heatsink-only devices; temperature history and thermal shutdown remain active.
+- Projector temperature thresholds, run time, firmware/data versions, LOT and serial-number display.
+- Settings persistence in EEPROM/NVS.
+- ESP32-C3 CPU reduced to 80 MHz and Wi-Fi power-saving adjustments.
 
-### 3️⃣ Set Up the Flashing Tool
+The delivered firmware and browser simulations pass locally. Real-hardware COM_REQ timing, fan PWM and deliberate thermal-shutdown triggering still require validation on the target device.
 
-- **Open the ESP32 Flash Download Tool.**
-- **Configure the following settings:**
-  - **Chip Type:** `ESP32-C3`
-  - **Firmware Mode:** `Development`
-  - **Interface:** `UART`
+## Wiring
 
-### 4️⃣ Configure and Flash the Firmware
+![ESP32-C3 connection diagram](figures/Esp32c3_supermini_wiring.png)
 
-- **Use Default Settings:**  
-  No need to modify default configurations in most cases.
+The original wiring image remains the primary connection reference. Confirm voltage levels, grounds and pin labels for your exact controller board before powering the hardware.
 
-- **Flash Address:**  
-  Burn the binary file to the chip at address **`0x0`**.
+| ESP32-C3 pin | Function |
+|---|---|
+| GPIO8 | I²C SDA |
+| GPIO7 | I²C SCL |
+| GPIO10 | COM_REQ input; external pull-up recommended |
+| GPIO2 | Long-press shutdown button, active low |
+| GPIO6 | 25 kHz fan PWM output |
 
-- **Start Flashing:**  
-  Click **"Start Flash"** or **"Download"**, then wait for the process to complete.
+The projector I²C address used by V4.3 is `0x77`. Confirm voltage levels, grounds and pin labels for your exact controller board before powering the hardware.
 
-### 5️⃣ Verify and Restart
+## First connection
 
-- After flashing is complete, you should see a **"Flash Successful"** message.
-- **Restart your ESP32-C3 SuperMini** to apply the new firmware.
+After flashing and restarting the ESP32-C3:
 
----
+1. Connect to Wi-Fi network `CXN0102_Web_Controller_Silver`.
+2. Enter the default password `12345678`.
+3. Open `http://192.168.4.1/`.
+4. Use the Wi-Fi section to save a local network and switch to STA mode if required.
 
-## 🆕 Updates & Version History
+The web controller has no user authentication. Do not expose it directly to the public internet, and change the compiled-in AP password before deployment if the default is unsuitable.
 
-### **🔹 v3.3 (Latest Test)**
-- ✅ **Added:** Store user settings to **EEPROM**, so configurations persist across reboots.
-- ✅ **Improved:** Stability when saving multiple settings.
+## Flash the prebuilt V4.3 firmware
 
-### **🔹 v3.2 (Latest Release)**
-- ✅ **Added:** gpio2 button for shutdown
+### Simple method: merged image
 
-### **🔹 v3.1**
-- ✅ **Added:** Chinese language support
-- ✅ **Changed wiring layout**
+Use Espressif's [Flash Download Tool](https://docs.espressif.com/projects/esp-test-tools/en/latest/esp32/production_stage/tools/flash_download_tool.html), or the archived copy under [`download_tool`](download_tool/).
 
-📸 **Screenshot:**  
-![ESP32 Flash Tool](figures/v3.1.png)
+Select `ESP32-C3`, `UART`, then flash:
 
-### **🔹 v3.0**
-- ✅ **Added:** Custom I2C Commands  
-- ✅ **Added:** WiFi Transmit Power Settings  
+| File | Address |
+|---|---:|
+| [`v4.3_merged_0x0.bin`](v4.3/bin/v4.3_merged_0x0.bin) | `0x0` |
 
-📸 **Screenshot:**  
-![ESP32 Flash Tool](figures/v3.0.png)
+The merged image contains the bootloader, partition table, application and SPIFFS web files. Flashing it may clear previously stored controller settings.
 
-### **Previous Versions**
-- **v2.0, v2.2, v2.3** are available in the repository.  
-  📩 **Contact me if you need additional help!**
+### Advanced method: separate images
 
----
+| File | Address |
+|---|---:|
+| [`bootloader.bin`](v4.3/bin/bootloader.bin) | `0x0` |
+| [`partitions.bin`](v4.3/bin/partitions.bin) | `0x8000` |
+| [`firmware.bin`](v4.3/bin/firmware.bin) | `0x10000` |
+| [`spiffs.bin`](v4.3/bin/spiffs.bin) | `0x290000` |
 
-📌 This project is now **completely open-source**, so you can freely explore, modify, and contribute.  
-🎉 **Happy flashing and coding!**
+Verify downloads against [`SHA256SUMS.txt`](v4.3/bin/SHA256SUMS.txt). Do not flash only `firmware.bin` at address `0x0`; that instruction applies only to a merged image.
+
+## Build from source
+
+Install [Visual Studio Code](https://code.visualstudio.com/) with the PlatformIO extension, or PlatformIO Core. Then run from the `v4.3` directory:
+
+```bash
+pio run
+pio run -t buildfs
+```
+
+To upload through PlatformIO:
+
+```bash
+pio run -t upload
+pio run -t uploadfs
+```
+
+The project targets `esp32-c3-devkitm-1`, Arduino framework, 4 MB flash, DIO mode and SPIFFS. See [`v4.3/platformio.ini`](v4.3/platformio.ini) for the complete configuration.
+
+## Thermal-safety notes
+
+- Automatic high-temperature shutdown is disabled by default and must be configured deliberately.
+- Default reference thresholds are 70 °C for the projector module and 85 °C for the ESP32-C3 die sensor.
+- The first over-limit sample requests full fan output when a fan is enabled. Two consecutive valid over-limit samples trigger `Stop` followed by `Shutdown`.
+- In Fan Off mode, PWM remains at zero but monitoring, history and shutdown logic continue.
+- The ESP32-C3 sensor measures internal die temperature, not room or enclosure temperature.
+- Software can request projector shutdown but cannot physically disconnect projector power.
+
+See [`v4.3/POWER_V4.3.md`](v4.3/POWER_V4.3.md) for implementation and validation details.
+
+## Repository layout
+
+| Path | Description |
+|---|---|
+| [`v4.3/`](v4.3/) | Current source, web assets, tests and prebuilt binaries |
+| [`v4.2/`](v4.2/) | Previous web-controller release |
+| [`v3.4/`](v3.4/) | Earlier PlatformIO release |
+| [`v3.0/`](v3.0/)–[`v3.2/`](v3.2/) | Historical binary releases |
+| [`figures/`](figures/) | Wiring and interface images |
+| [`download_tool/`](download_tool/) | Archived flashing utility |
+
+## Version history
+
+| Version | Main changes |
+|---|---|
+| V4.3 | Modular firmware, 80 MHz power optimization, improved Wi-Fi behavior, bilingual responsive UI, projector/ESP32 temperature histories, configurable thermal shutdown, expanded fan control and fanless mode |
+| V4.2 | Web control, persistent settings and SPIFFS interface |
+| V3.4 | PlatformIO source release and protocol reference |
+| V3.2 | GPIO2 shutdown button |
+| V3.1 | Chinese interface and revised wiring |
+| V3.0 | Custom I²C commands and Wi-Fi transmit-power control |
+
+## Historical interface screenshots
+
+The existing V3.0 and V3.1 screenshots remain in the repository.
+
+![V3.1 interface](figures/v3.1.png)
+
+![V3.0 interface](figures/v3.0.png)
+
+## License
+
+See [`LICENSE`](LICENSE). Contributions and hardware-test reports are welcome.
